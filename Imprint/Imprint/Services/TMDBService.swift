@@ -65,6 +65,51 @@ final class TMDBService: Sendable {
         return response.posters.sorted { $0.voteAverage > $1.voteAverage }
     }
 
+    // MARK: - TV Search
+
+    /// Search for TV shows matching the given query string.
+    func searchTV(query: String) async throws -> [TMDBTVShow] {
+        guard isConfigured else { return [] }
+
+        let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
+        let url = URL(string: "\(baseURL)/search/tv?api_key=\(apiKey)&query=\(encoded)&include_adult=false")!
+
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let response = try JSONDecoder().decode(TMDBTVSearchResponse.self, from: data)
+        return response.results
+    }
+
+    // MARK: - TV Details
+
+    /// Fetch full details for a TV show, including credits.
+    func getTVDetails(id: Int) async throws -> TMDBTVDetail {
+        let url = URL(string: "\(baseURL)/tv/\(id)?api_key=\(apiKey)&append_to_response=credits")!
+
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(TMDBTVDetail.self, from: data)
+    }
+
+    // MARK: - TV Episode Details
+
+    /// Fetch details for a specific episode of a TV show.
+    func getEpisodeDetails(showId: Int, season: Int, episode: Int) async throws -> TMDBEpisodeDetail {
+        let url = URL(string: "\(baseURL)/tv/\(showId)/season/\(season)/episode/\(episode)?api_key=\(apiKey)")!
+
+        let (data, _) = try await URLSession.shared.data(from: url)
+        return try JSONDecoder().decode(TMDBEpisodeDetail.self, from: data)
+    }
+
+    // MARK: - TV Posters
+
+    /// Fetch all available poster images for a TV show.
+    func getTVPosters(id: Int) async throws -> [TMDBPoster] {
+        let url = URL(string: "\(baseURL)/tv/\(id)/images?api_key=\(apiKey)")!
+
+        let (data, _) = try await URLSession.shared.data(from: url)
+        let response = try JSONDecoder().decode(TMDBImagesResponse.self, from: data)
+        return response.posters.sorted { $0.voteAverage > $1.voteAverage }
+    }
+
     // MARK: - Image URLs
 
     /// Constructs a full image URL for a TMDB poster path.

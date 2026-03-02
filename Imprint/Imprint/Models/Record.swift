@@ -49,17 +49,55 @@ final class Record {
     /// The TMDB poster file path (e.g. "/abc123.jpg") chosen by the user.
     var posterPath: String?
 
+    /// Runtime in minutes (from TMDB).
+    var runtime: Int?
+
+    /// Synopsis / overview text (from TMDB).
+    var overview: String?
+
+    /// Comma-separated genre names (e.g. "Drama, Romance").
+    var genres: String?
+
+    /// Comma-separated top cast names (e.g. "Actor One, Actor Two").
+    var cast: String?
+
     // MARK: - TV Fields
 
     var creator: String?
     var season: Int?
     var episode: Int?
 
+    /// Show-level metadata (from TMDB)
+    var tvReleaseYear: Int?
+    var numberOfSeasons: Int?
+
+    /// Episode-level metadata (from TMDB)
+    var episodeName: String?
+    var episodeDirector: String?
+    var episodeAirYear: Int?
+    var episodeRuntime: Int?
+
+    /// JSON-encoded array of `WatchedEpisode` for multi-episode logging.
+    /// When set, this is the source of truth for logged TV episodes.
+    var episodesJSON: String?
+
     // MARK: - Book Fields
 
     var author: String?
     var publicationDate: Int?
     var translator: String?
+
+    /// The Hardcover book ID, if linked via search.
+    var hardcoverId: Int?
+
+    /// Number of pages (from Hardcover).
+    var pageCount: Int?
+
+    /// Start page for this reading session.
+    var startPage: Int?
+
+    /// End page for this reading session.
+    var endPage: Int?
 
     // MARK: - Music Fields
 
@@ -120,9 +158,48 @@ extension Record {
     var releaseYear: Int? {
         switch mediaType {
         case .film: filmReleaseDate
-        case .tv: nil
+        case .tv: tvReleaseYear
         case .book: publicationDate
         case .music: musicReleaseDate
+        }
+    }
+
+    /// Decoded episodes for multi-episode TV logging.
+    ///
+    /// If `episodesJSON` exists, decodes from JSON. Otherwise falls back to the
+    /// legacy flat fields (`season`, `episode`, etc.) for backward compatibility.
+    var watchedEpisodes: [WatchedEpisode] {
+        if let jsonStr = episodesJSON,
+           let data = jsonStr.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([WatchedEpisode].self, from: data) {
+            return decoded
+        } else if let s = season, let e = episode {
+            return [WatchedEpisode(
+                season: s,
+                episode: e,
+                episodeName: episodeName,
+                episodeDirector: episodeDirector,
+                episodeAirYear: episodeAirYear,
+                episodeRuntime: episodeRuntime
+            )]
+        } else {
+            return []
+        }
+    }
+
+    /// Resolves the cover/poster image URL, handling both TMDB paths and Hardcover URLs.
+    ///
+    /// TMDB paths start with "/" (e.g. "/abc123.jpg").
+    /// Hardcover covers are stored as "hc:{fullURL}" (e.g. "hc:https://hardcover.app/...").
+    func coverImageURL(size: String? = nil) -> URL? {
+        guard let path = posterPath else { return nil }
+        if path.hasPrefix("hc:") {
+            // Hardcover cover — stored as full URL
+            let urlStr = String(path.dropFirst(3))
+            return URL(string: urlStr)
+        } else {
+            // TMDB poster
+            return TMDBService.posterURL(path: path, size: size ?? "w500")
         }
     }
 }

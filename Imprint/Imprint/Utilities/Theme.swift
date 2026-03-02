@@ -62,6 +62,13 @@ enum ImprintColors {
     static let tvDarkBold    = Color(hex: 0xA699D0)
     static let musicDarkBold = Color(hex: 0xE8705F)
 
+    // Accent blue (confirm button, links)
+    static let accentBlue   = Color(hex: 0x4385BE)
+
+    // Action buttons (detail view floating bar)
+    static let actionLogAgain = Color(hex: 0x2F968D)  // cyan/cyan-500 – "log again" button
+    static let actionEdit     = Color(hex: 0xDFB431)  // yellow/yellow-300 – "edit" button
+
     // Modal / Form
     static let formBorder   = Color(hex: 0x000000)
     static let chipInactive = Color(hex: 0xE6E6E6)
@@ -103,6 +110,10 @@ enum ImprintFonts {
 
     // MARK: JetBrains Mono
 
+    static func jetBrainsSemiBold(_ size: CGFloat) -> Font {
+        .custom("JetBrainsMono-SemiBold", size: size, relativeTo: .body)
+    }
+
     static func jetBrainsBold(_ size: CGFloat) -> Font {
         .custom("JetBrainsMono-Bold", size: size, relativeTo: .body)
     }
@@ -120,11 +131,12 @@ enum ImprintFonts {
     static var pageTitle: Font { platypiExtraBold(32) }
     static var modalTitle: Font { platypiSemiBold(20) }
     static var detailTitle: Font { platypiSemiBold(32) }
-    static var filterChip: Font { jetBrainsMedium(12) }
-    static var recordName: Font { jetBrainsMedium(14) }
+    static var detailSubtitle: Font { platypiSemiBold(24) }
+    static var filterChip: Font { jetBrainsMedium(14) }
+    static var recordName: Font { jetBrainsSemiBold(14) }
     static var monthHeader: Font { jetBrainsBold(14) }
-    static var dateText: Font { jetBrainsMedium(14) }
-    static var formLabel: Font { jetBrainsMedium(12) }
+    static var dateText: Font { jetBrainsSemiBold(14) }
+    static var formLabel: Font { jetBrainsMedium(14) }
     static var formValue: Font { jetBrainsMedium(16) }
     static var searchPlaceholder: Font { jetBrainsBold(14) }
     static var noteBody: Font { jetBrainsRegular(14) }

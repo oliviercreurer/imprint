@@ -49,7 +49,7 @@ struct TMDBSearchView: View {
                 searchPhase
             }
         }
-        .background(ImprintColors.paper)
+        .background(ImprintColors.paper.ignoresSafeArea())
         .presentationCornerRadius(42)
     }
 
@@ -74,7 +74,7 @@ struct TMDBSearchView: View {
                     }
                 } label: {
                     Text("Back")
-                        .font(ImprintFonts.jetBrainsMedium(12))
+                        .font(ImprintFonts.jetBrainsMedium(14))
                         .foregroundStyle(.black)
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
@@ -112,6 +112,7 @@ struct TMDBSearchView: View {
 
                 TextField("Film title…", text: $query)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .onSubmit { triggerSearch() }
@@ -205,13 +206,13 @@ struct TMDBSearchView: View {
 
                     if let year = movie.releaseYear {
                         Text(String(year))
-                            .font(ImprintFonts.jetBrainsRegular(12))
+                            .font(ImprintFonts.jetBrainsRegular(14))
                             .foregroundStyle(ImprintColors.secondary)
                     }
 
                     if let overview = movie.overview, !overview.isEmpty {
                         Text(overview)
-                            .font(ImprintFonts.jetBrainsRegular(11))
+                            .font(ImprintFonts.jetBrainsRegular(13))
                             .foregroundStyle(ImprintColors.secondary)
                             .lineLimit(2)
                     }
@@ -275,12 +276,12 @@ struct TMDBSearchView: View {
                     HStack(spacing: 8) {
                         if let year = movieDetail?.releaseYear ?? movie.releaseYear {
                             Text(String(year))
-                                .font(ImprintFonts.jetBrainsRegular(12))
+                                .font(ImprintFonts.jetBrainsRegular(14))
                                 .foregroundStyle(ImprintColors.secondary)
                         }
                         if let director = movieDetail?.director {
                             Text("dir. \(director)")
-                                .font(ImprintFonts.jetBrainsRegular(12))
+                                .font(ImprintFonts.jetBrainsRegular(14))
                                 .foregroundStyle(ImprintColors.secondary)
                         }
                     }
@@ -383,6 +384,7 @@ struct TMDBSearchView: View {
             .padding(.bottom, 40)
             .background(ImprintColors.paper)
         }
+        .ignoresSafeArea(edges: .bottom)
     }
 
     // MARK: - Actions

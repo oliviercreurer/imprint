@@ -61,16 +61,16 @@ private struct FilterChip: View {
         Button(action: action) {
             Text(label)
                 .font(ImprintFonts.filterChip)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 4)
                 .background(isSelected ? selectedBg : unselectedBg)
                 .foregroundStyle(isSelected ? selectedText : unselectedText)
-                .clipShape(RoundedRectangle(cornerRadius: 2))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 2)
+                    RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(
                             isSelected ? Color.clear : unselectedBorder,
-                            lineWidth: 1
+                            lineWidth: 2
                         )
                 )
         }

@@ -1,96 +1,215 @@
 import SwiftUI
 
 /// The custom footer overlay with gradient fade, search bar, and toolbar icons.
+/// Tapping the + button reveals an animated media-type picker menu.
 struct FooterToolbar: View {
 
     @Binding var searchText: String
     let isDark: Bool
     let placeholder: String
-    let allExpanded: Bool
-    let onAdd: () -> Void
-    let onToggleExpand: () -> Void
+    let onAdd: (MediaType) -> Void
+
+    @State private var showingMenu = false
+    @FocusState private var isSearchFocused: Bool
 
     private var bgColor: Color { isDark ? ImprintColors.primary : ImprintColors.paper }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ZStack {
+            // LAYER 1: Footer chrome (gradient + search + settings + add button)
+            footerChrome
 
-            ZStack(alignment: .bottom) {
-                // Gradient fade
-                LinearGradient(
-                    colors: [bgColor.opacity(0), bgColor],
-                    startPoint: .top,
-                    endPoint: UnitPoint(x: 0.5, y: 0.35)
-                )
-                .allowsHitTesting(false)
-
-                VStack(spacing: 16) {
-                    // Search bar
-                    HStack(spacing: 0) {
-                        TextField("", text: $searchText, prompt:
-                            Text(placeholder)
-                                .font(ImprintFonts.searchPlaceholder)
-                                .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
-                        )
-                        .font(ImprintFonts.searchPlaceholder)
-                        .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
+            // LAYER 2: Full-screen scrim — covers everything including the footer
+            if showingMenu {
+                Color.black.opacity(0.15)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            showingMenu = false
+                        }
                     }
-                    .padding(.horizontal, 16)
-                    .frame(height: 48)
-                    .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(
-                                isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
-                                lineWidth: 2
-                            )
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
 
-                    // Toolbar row — ZStack so + button is always dead center
-                    ZStack {
-                        // Add button (absolutely centered)
-                        Button(action: onAdd) {
+            // LAYER 3: Menu + close button float above the scrim
+            VStack(spacing: 0) {
+                Spacer()
+
+                HStack {
+                    Spacer()
+
+                    ZStack(alignment: .bottomTrailing) {
+                        // Menu anchored above the button
+                        if showingMenu {
+                            mediaTypeMenu
+                                .offset(y: -58)
+                                .transition(
+                                    .asymmetric(
+                                        insertion: .opacity
+                                            .combined(with: .scale(scale: 0.85, anchor: .bottomTrailing))
+                                            .combined(with: .offset(y: 6)),
+                                        removal: .opacity
+                                            .combined(with: .scale(scale: 0.9, anchor: .bottomTrailing))
+                                    )
+                                )
+                        }
+
+                        // The × / + button
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                showingMenu.toggle()
+                            }
+                        } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 18, weight: .medium))
                                 .foregroundStyle(isDark ? ImprintColors.primary : ImprintColors.paper)
                                 .frame(width: 48, height: 48)
                                 .background(isDark ? ImprintColors.paper : ImprintColors.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-
-                        // Side icons
-                        HStack {
-                            // Settings
-                            Button {
-                                // TODO: Settings action
-                            } label: {
-                                Image(systemName: "gearshape")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
-                                    .frame(width: 24, height: 24)
-                            }
-
-                            Spacer()
-
-                            // Expand / Collapse all
-                            Button {
-                                onToggleExpand()
-                            } label: {
-                                Image(systemName: "chevron.up.chevron.down")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
-                                    .frame(width: 24, height: 24)
-                                    .rotationEffect(.degrees(allExpanded ? 0 : 180))
-                            }
+                                .clipShape(RoundedRectangle(cornerRadius: showingMenu ? 24 : 8))
+                                .rotationEffect(.degrees(showingMenu ? 45 : 0))
                         }
                     }
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, 40)
             }
-            .frame(height: 200)
+            .ignoresSafeArea(edges: .bottom)
         }
+    }
+
+    // MARK: - Footer Chrome
+
+    /// The base footer layer: gradient, search bar, settings icon, and add button placeholder.
+    private var footerChrome: some View {
+        VStack(spacing: 0) {
+            Spacer()
+
+            // Gradient fade — transparent at top, solid at bottom
+            LinearGradient(
+                colors: [bgColor.opacity(0), bgColor],
+                startPoint: .top,
+                endPoint: UnitPoint(x: 0.5, y: 0.35)
+            )
+            .frame(height: 60)
+            .allowsHitTesting(false)
+
+            // Solid background region with content
+            VStack(spacing: 16) {
+                // Search bar
+                HStack(spacing: 8) {
+                    TextField("", text: $searchText, prompt:
+                        Text(placeholder)
+                            .font(ImprintFonts.searchPlaceholder)
+                            .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
+                    )
+                    .font(ImprintFonts.searchPlaceholder)
+                    .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
+                    .focused($isSearchFocused)
+                    .submitLabel(.done)
+                    .onSubmit { isSearchFocused = false }
+
+                    // Clear / dismiss button when focused or has text
+                    if isSearchFocused || !searchText.isEmpty {
+                        Button {
+                            if searchText.isEmpty {
+                                isSearchFocused = false
+                            } else {
+                                searchText = ""
+                            }
+                        } label: {
+                            Image(systemName: searchText.isEmpty ? "keyboard.chevron.compact.down" : "xmark.circle.fill")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
+                        }
+                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                    }
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+                .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(
+                            isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
+                            lineWidth: 2
+                        )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
+
+                // Toolbar row
+                HStack {
+                    // Settings
+                    Button {
+                        // TODO: Settings action
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 20))
+                            .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
+                            .frame(width: 24, height: 24)
+                    }
+
+                    Spacer()
+
+                    // Invisible spacer matching the add button size to keep layout consistent
+                    Color.clear
+                        .frame(width: 48, height: 48)
+                }
+            }
+            .padding(.horizontal, 32)
+            .padding(.top, 4)
+            .padding(.bottom, 40)
+            .background(bgColor)
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    // MARK: - Media Type Menu
+
+    private var mediaTypeMenu: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Add...")
+                .font(ImprintFonts.jetBrainsMedium(14))
+                .foregroundStyle(ImprintColors.searchBorder)
+
+            ForEach(MediaType.allCases) { type in
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                        showingMenu = false
+                    }
+                    onAdd(type)
+                } label: {
+                    HStack {
+                        Text(type.menuLabel)
+                            .font(ImprintFonts.jetBrainsMedium(14))
+                            .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
+
+                        Spacer()
+
+                        // Colored legend square (filled)
+                        RoundedRectangle(cornerRadius: 1)
+                            .fill(type.subtleColor)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 1)
+                                    .strokeBorder(type.subtleColor, lineWidth: 2)
+                            )
+                            .frame(width: 10, height: 10)
+                    }
+                    .frame(height: 18)
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(20)
+        .frame(width: 162)
+        .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.paper)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(
+                    isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
+                    lineWidth: 2
+                )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }

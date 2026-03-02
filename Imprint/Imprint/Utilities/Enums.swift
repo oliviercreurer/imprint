@@ -18,6 +18,17 @@ nonisolated enum RecordType: String, Codable, CaseIterable, Identifiable, Sendab
         case .queued: "Queue"
         }
     }
+
+    /// The pages shown in the horizontal paging TabView.
+    static let allPages: [RecordType] = [.logged, .queued]
+
+    /// Index of this page in the paging order.
+    var pageIndex: Int {
+        switch self {
+        case .logged: return 0
+        case .queued: return 1
+        }
+    }
 }
 
 // MARK: - Media Type
@@ -35,6 +46,16 @@ nonisolated enum MediaType: String, Codable, CaseIterable, Identifiable, Sendabl
         switch self {
         case .film: "Film"
         case .tv: "TV"
+        case .book: "Book"
+        case .music: "Music"
+        }
+    }
+
+    /// Longer label used in the "Add…" menu.
+    var menuLabel: String {
+        switch self {
+        case .film: "Film"
+        case .tv: "TV Show"
         case .book: "Book"
         case .music: "Music"
         }

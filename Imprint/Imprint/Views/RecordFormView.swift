@@ -44,16 +44,15 @@ struct RecordFormView: View {
     @State private var artist: String = ""
     @State private var musicReleaseDate: String = ""
 
-    @State private var showingDatePicker = false
-
     private var isEditing: Bool { existingRecord != nil }
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
     // MARK: - Init
 
-    init(initialRecordType: RecordType = .logged, existingRecord: Record? = nil) {
+    init(initialRecordType: RecordType = .logged, initialMediaType: MediaType = .film, existingRecord: Record? = nil) {
         self.existingRecord = existingRecord
         _recordType = State(initialValue: existingRecord?.recordType ?? initialRecordType)
+        _mediaType = State(initialValue: existingRecord?.mediaType ?? initialMediaType)
     }
 
     var body: some View {
@@ -94,24 +93,17 @@ struct RecordFormView: View {
 
                         // Date (for logged records)
                         if recordType == .logged {
-                            FormField(label: "Date", isRequired: true) {
-                                Button {
-                                    showingDatePicker.toggle()
-                                } label: {
-                                    Text(formattedDateForField(finishedOn))
-                                        .font(ImprintFonts.formValue)
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Date")
+                                        .font(ImprintFonts.formLabel)
                                         .foregroundStyle(.black)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Spacer()
+                                    Text("Required")
+                                        .font(ImprintFonts.formLabel)
+                                        .foregroundStyle(ImprintColors.required)
                                 }
-                                .buttonStyle(.plain)
-                            }
-
-                            if showingDatePicker {
-                                DatePicker("", selection: $finishedOn, displayedComponents: .date)
-                                    .datePickerStyle(.wheel)
-                                    .labelsHidden()
-                                    .frame(maxHeight: 150)
-                                    .clipped()
+                                ImprintDatePicker(selection: $finishedOn, hasSetDate: .constant(true))
                             }
                         }
 
@@ -119,6 +111,7 @@ struct RecordFormView: View {
                         FormField(label: "Name", isRequired: true) {
                             TextField("", text: $name)
                                 .font(ImprintFonts.formValue)
+                                .foregroundStyle(ImprintColors.primary)
                         }
 
                         // Media-specific fields
@@ -128,12 +121,14 @@ struct RecordFormView: View {
                         FormField(label: "Country") {
                             TextField("", text: $country)
                                 .font(ImprintFonts.formValue)
+                                .foregroundStyle(ImprintColors.primary)
                         }
 
                         // Note
                         FormField(label: "Note") {
                             TextEditor(text: $note)
                                 .font(ImprintFonts.noteBody)
+                                .foregroundStyle(ImprintColors.primary)
                                 .frame(minHeight: 120)
                                 .scrollContentBackground(.hidden)
                         }
@@ -172,9 +167,10 @@ struct RecordFormView: View {
                 .frame(maxWidth: .infinity)
                 .background(ImprintColors.paper)
             }
+            .ignoresSafeArea(edges: .bottom)
             }
         }
-        .background(ImprintColors.paper)
+        .background(ImprintColors.paper.ignoresSafeArea())
         .onAppear(perform: populateFromExisting)
         .presentationCornerRadius(42)
         .sheet(isPresented: $showingTMDBSearch) {
@@ -200,7 +196,7 @@ struct RecordFormView: View {
                     }
                 } label: {
                     Text(type.label)
-                        .font(ImprintFonts.jetBrainsMedium(12))
+                        .font(ImprintFonts.jetBrainsMedium(14))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(mediaType == type ? Color.black : ImprintColors.chipInactive)
@@ -254,7 +250,7 @@ struct RecordFormView: View {
                         Image(systemName: "magnifyingglass")
                             .font(.system(size: 13, weight: .medium))
                         Text(tmdbId.isEmpty ? "Search TMDB" : "Search again")
-                            .font(ImprintFonts.jetBrainsMedium(12))
+                            .font(ImprintFonts.jetBrainsMedium(14))
                     }
                     .foregroundStyle(ImprintColors.filmBold)
                     .padding(.horizontal, 12)
@@ -292,7 +288,7 @@ struct RecordFormView: View {
                                 posterPath = ""
                             } label: {
                                 Text("Remove")
-                                    .font(ImprintFonts.jetBrainsRegular(11))
+                                    .font(ImprintFonts.jetBrainsRegular(13))
                                     .foregroundStyle(ImprintColors.required)
                             }
                         }
@@ -303,26 +299,31 @@ struct RecordFormView: View {
             FormField(label: "Director") {
                 TextField("", text: $director)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
             }
             FormField(label: "Release year") {
                 TextField("", text: $filmReleaseDate)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
                     .keyboardType(.numberPad)
             }
         case .tv:
             FormField(label: "Creator") {
                 TextField("", text: $creator)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
             }
             HStack(spacing: 16) {
                 FormField(label: "Season") {
                     TextField("", text: $season)
                         .font(ImprintFonts.formValue)
+                        .foregroundStyle(ImprintColors.primary)
                         .keyboardType(.numberPad)
                 }
                 FormField(label: "Episode") {
                     TextField("", text: $episode)
                         .font(ImprintFonts.formValue)
+                        .foregroundStyle(ImprintColors.primary)
                         .keyboardType(.numberPad)
                 }
             }
@@ -330,24 +331,29 @@ struct RecordFormView: View {
             FormField(label: "Author") {
                 TextField("", text: $author)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
             }
             FormField(label: "Publication year") {
                 TextField("", text: $publicationDate)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
                     .keyboardType(.numberPad)
             }
             FormField(label: "Translator") {
                 TextField("", text: $translator)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
             }
         case .music:
             FormField(label: "Artist") {
                 TextField("", text: $artist)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
             }
             FormField(label: "Release year") {
                 TextField("", text: $musicReleaseDate)
                     .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.primary)
                     .keyboardType(.numberPad)
             }
         }
