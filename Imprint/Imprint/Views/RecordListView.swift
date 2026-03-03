@@ -9,6 +9,7 @@ struct RecordListView: View {
     let recordType: RecordType
     let mediaFilter: MediaType?
     let searchText: String
+    let enabledMediaTypes: [MediaType]
     let isDark: Bool
     let allExpanded: Bool
     let expandTrigger: Int
@@ -21,6 +22,7 @@ struct RecordListView: View {
         recordType: RecordType,
         mediaFilter: MediaType?,
         searchText: String,
+        enabledMediaTypes: [MediaType] = MediaType.allCases.map { $0 },
         isDark: Bool = false,
         allExpanded: Bool = true,
         expandTrigger: Int = 0,
@@ -29,6 +31,7 @@ struct RecordListView: View {
         self.recordType = recordType
         self.mediaFilter = mediaFilter
         self.searchText = searchText
+        self.enabledMediaTypes = enabledMediaTypes
         self.isDark = isDark
         self.allExpanded = allExpanded
         self.expandTrigger = expandTrigger
@@ -44,9 +47,11 @@ struct RecordListView: View {
         )
     }
 
-    /// Records after applying media type filter and search text.
+    /// Records after applying media type filter, enabled types, and search text.
     private var filteredRecords: [Record] {
-        var results = allRecords
+        // Exclude disabled media types
+        let enabledRaw = Set(enabledMediaTypes.map(\.rawValue))
+        var results = allRecords.filter { enabledRaw.contains($0.mediaTypeRaw) }
 
         if let mediaFilter {
             let filterRaw = mediaFilter.rawValue
