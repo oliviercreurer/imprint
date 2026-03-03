@@ -81,7 +81,7 @@ struct RecordListView: View {
 
     private var loggedContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 24) {
+            LazyVStack(alignment: .leading, spacing: 18) {
                 let groups = groupRecordsByMonth(filteredRecords)
 
                 ForEach(groups) { group in

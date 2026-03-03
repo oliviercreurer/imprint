@@ -61,7 +61,7 @@ private struct FilterChip: View {
         Button(action: action) {
             Text(label)
                 .font(ImprintFonts.filterChip)
-                .padding(.horizontal, 12)
+                .frame(maxWidth: .infinity)
                 .padding(.vertical, 4)
                 .background(isSelected ? selectedBg : unselectedBg)
                 .foregroundStyle(isSelected ? selectedText : unselectedText)

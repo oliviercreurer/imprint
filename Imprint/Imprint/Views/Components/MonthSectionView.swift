@@ -107,11 +107,12 @@ struct MonthSectionView: View {
 
                     RoundedRectangle(cornerRadius: cornerRadius(for: index))
                         .fill(item.type.subtleColor)
-                        .frame(width: max(barWidth, 4), height: 12)
+                        .frame(width: max(barWidth, 4), height: 10)
                 }
             }
+            .frame(maxHeight: .infinity, alignment: .center)
         }
-        .frame(height: 12)
+        .frame(height: 18)
     }
 
     /// First bar gets 4px left radius, last bar gets 4px right radius, middle bars get 2px.
