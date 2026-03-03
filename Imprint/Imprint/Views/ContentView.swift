@@ -189,7 +189,17 @@ struct ContentView: View {
 
                 Spacer()
 
-                DotIndicator(currentPage: selectedTab, isDark: isQueue)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        selectedTab = isQueue ? .logged : .queued
+                    }
+                } label: {
+                    ImprintLogo()
+                        .fill(isQueue ? ImprintColors.paper : ImprintColors.primary)
+                        .frame(width: 28, height: 28)
+                        .rotationEffect(.degrees(isQueue ? 180 : 0))
+                }
+                .buttonStyle(.plain)
             }
 
             MediaFilterBar(selection: $mediaFilter, isDark: isQueue)
