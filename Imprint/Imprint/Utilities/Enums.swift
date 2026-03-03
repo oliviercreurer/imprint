@@ -61,6 +61,16 @@ nonisolated enum MediaType: String, Codable, CaseIterable, Identifiable, Sendabl
         }
     }
 
+    /// Plural label used in Settings rows.
+    var settingsLabel: String {
+        switch self {
+        case .film: "Films"
+        case .tv: "TV Shows"
+        case .book: "Books"
+        case .music: "Music"
+        }
+    }
+
     /// SF Symbol name for each media type.
     var iconName: String {
         switch self {

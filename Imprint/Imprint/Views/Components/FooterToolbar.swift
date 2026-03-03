@@ -11,6 +11,7 @@ struct FooterToolbar: View {
 
     @State private var showingMenu = false
     @FocusState private var isSearchFocused: Bool
+    @Environment(\.enabledMediaTypes) private var enabledTypes
 
     private var bgColor: Color { isDark ? ImprintColors.primary : ImprintColors.paper }
 
@@ -171,7 +172,7 @@ struct FooterToolbar: View {
                 .font(ImprintFonts.jetBrainsMedium(14))
                 .foregroundStyle(ImprintColors.searchBorder)
 
-            ForEach(MediaType.allCases) { type in
+            ForEach(enabledTypes) { type in
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                         showingMenu = false

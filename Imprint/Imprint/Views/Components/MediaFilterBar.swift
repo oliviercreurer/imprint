@@ -9,24 +9,28 @@ struct MediaFilterBar: View {
     /// Whether to use dark-mode styling (for Queue view).
     var isDark: Bool = false
 
+    @Environment(\.enabledMediaTypes) private var enabledTypes
+
     var body: some View {
         HStack(spacing: 8) {
-            // "All" chip
-            FilterChip(
-                label: "All",
-                isSelected: selection == nil,
-                selectedBg: isDark ? ImprintColors.paper : ImprintColors.primary,
-                selectedText: isDark ? ImprintColors.primary : ImprintColors.paper,
-                unselectedBg: isDark ? ImprintColors.primary : ImprintColors.paper,
-                unselectedBorder: isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.secondary,
-                unselectedText: isDark ? ImprintColors.paper : ImprintColors.primary
-            ) {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    selection = nil
+            // "All" chip — hidden when only one type is enabled
+            if enabledTypes.count > 1 {
+                FilterChip(
+                    label: "All",
+                    isSelected: selection == nil,
+                    selectedBg: isDark ? ImprintColors.paper : ImprintColors.primary,
+                    selectedText: isDark ? ImprintColors.primary : ImprintColors.paper,
+                    unselectedBg: isDark ? ImprintColors.primary : ImprintColors.paper,
+                    unselectedBorder: isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.secondary,
+                    unselectedText: isDark ? ImprintColors.paper : ImprintColors.primary
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selection = nil
+                    }
                 }
             }
 
-            ForEach(MediaType.allCases) { type in
+            ForEach(enabledTypes) { type in
                 FilterChip(
                     label: type.label,
                     isSelected: selection == type,

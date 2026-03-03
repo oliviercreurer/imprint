@@ -6,7 +6,7 @@ import SwiftData
 /// crossfade smoothly; only the content list slides between pages.
 ///
 /// Settings is presented as an overlay sheet (z-index layers):
-///   z4 – global @olvr handle chip (always visible)
+///   z4 – global @layal handle chip (always visible)
 ///   z3 – settings content (title + X + body)
 ///   z2 – settings blue background sheet
 ///   z1 – underlying page (header, list, footer — untouched)
@@ -16,6 +16,8 @@ struct ContentView: View {
 
     /// All records, used to derive the flat ordered list for the detail pager.
     @Query(sort: \Record.createdAt, order: .reverse) private var allRecords: [Record]
+
+    @AppStorage("disabledMediaTypes") private var disabledMediaTypesRaw = ""
 
     @State private var selectedTab: RecordType = .logged
     @State private var mediaFilter: MediaType?
@@ -43,9 +45,15 @@ struct ContentView: View {
 
     private var isQueue: Bool { selectedTab == .queued }
 
+    /// Media types the user has enabled in Settings.
+    private var enabledTypes: [MediaType] {
+        enabledMediaTypes(disabledRaw: disabledMediaTypesRaw)
+    }
+
     /// Flat ordered list of records for the current tab, matching RecordListView's filters.
     private var currentTabRecords: [Record] {
-        var results = allRecords.filter { $0.recordType == selectedTab }
+        let disabled = disabledMediaTypeSet(from: disabledMediaTypesRaw)
+        var results = allRecords.filter { $0.recordType == selectedTab && !disabled.contains($0.mediaTypeRaw) }
 
         if let mediaFilter {
             results = results.filter { $0.mediaType == mediaFilter }
@@ -88,6 +96,7 @@ struct ContentView: View {
                                 recordType: page,
                                 mediaFilter: mediaFilter,
                                 searchText: searchText,
+                                enabledMediaTypes: enabledTypes,
                                 isDark: page == .queued,
                                 allExpanded: allSectionsExpanded,
                                 expandTrigger: expandCollapseTrigger,
@@ -145,7 +154,7 @@ struct ContentView: View {
             .allowsHitTesting(!showingSettings)
 
             // ── z2: Settings background sheet ────────────────────
-            ImprintColors.accentBlue
+            ImprintColors.accentBlueBold
                 .ignoresSafeArea()
                 .opacity(showingSettings ? 1 : 0)
                 .allowsHitTesting(false)
@@ -174,7 +183,7 @@ struct ContentView: View {
                             showingSettings.toggle()
                         }
                     } label: {
-                        Text("@olvr")
+                        Text("@layal")
                             .font(ImprintFonts.jetBrainsBold(14))
                             .foregroundStyle(ImprintColors.accentBlue)
                             .padding(.horizontal, 10)
@@ -196,8 +205,15 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: selectedTab)
         .animation(.easeInOut(duration: 0.25), value: showingSettings)
+        .environment(\.enabledMediaTypes, enabledTypes)
         .onChange(of: selectedTab) { _, _ in
             searchText = ""
+        }
+        .onChange(of: disabledMediaTypesRaw) { _, _ in
+            // Clear the active filter if its type was just disabled
+            if let mediaFilter, !enabledTypes.contains(mediaFilter) {
+                self.mediaFilter = nil
+            }
         }
         .sheet(isPresented: $showingAddFilm) {
             AddFilmView(initialRecordType: selectedTab)

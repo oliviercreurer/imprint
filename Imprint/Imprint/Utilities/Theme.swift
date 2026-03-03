@@ -62,9 +62,15 @@ enum ImprintColors {
     static let tvDarkBold    = Color(hex: 0xA699D0)
     static let musicDarkBold = Color(hex: 0xE8705F)
 
-    // Accent blue (confirm button, links)
-    static let accentBlue      = Color(hex: 0x4385BE)
-    static let accentBlueLight = Color(hex: 0x92BFDB)
+    // Accent blue family
+    static let accentBlue        = Color(hex: 0x4385BE)  // accent/blue/subtle
+    static let accentBlueLight   = Color(hex: 0x92BFDB)  // accent/blue/subtler
+    static let accentBlueBold    = Color(hex: 0x205EA6)  // accent/blue/bold
+    static let accentBlueBolder  = Color(hex: 0x163B66)  // accent/blue/bolder
+    static let accentBlueSubtlest = Color(hex: 0xE1ECEB) // accent/blue/subtlest
+
+    // Settings row background
+    static let settingsRowBg     = Color(hex: 0x3171B2)  // blue/blue-500
 
     // Action buttons (detail view floating bar)
     static let actionLogAgain = Color(hex: 0x2F968D)  // cyan/cyan-500 – "log again" button
@@ -107,6 +113,10 @@ enum ImprintFonts {
 
     static func platypiSemiBold(_ size: CGFloat) -> Font {
         .custom("Platypi-SemiBold", size: size, relativeTo: .title)
+    }
+
+    static func platypiLight(_ size: CGFloat) -> Font {
+        .custom("Platypi-Light", size: size, relativeTo: .body)
     }
 
     // MARK: JetBrains Mono
