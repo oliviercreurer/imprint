@@ -4,6 +4,12 @@ import SwiftData
 /// The root view of the app. Swipe horizontally to page between screens
 /// (Log, Queue). The header, footer, and background stay fixed and
 /// crossfade smoothly; only the content list slides between pages.
+///
+/// Settings is presented as an overlay sheet (z-index layers):
+///   z4 – global @olvr handle chip (always visible)
+///   z3 – settings content (title + X + body)
+///   z2 – settings blue background sheet
+///   z1 – underlying page (header, list, footer — untouched)
 struct ContentView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -21,8 +27,13 @@ struct ContentView: View {
     @State private var newRecordMediaType: MediaType = .film
     @State private var selectedRecord: Record?
 
+    @State private var showingSettings = false
+
     /// Toast message shown briefly after moving a queue item to the log.
     @State private var toastMessage: String?
+    @State private var toastVisible = false
+    /// Name pending for toast after fullScreenCover finishes dismissing.
+    @State private var pendingToastName: String?
 
     /// Whether all month sections are currently expanded.
     @State private var allSectionsExpanded = true
@@ -54,69 +65,66 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            // Animated background
+
+            // ── z1: Underlying page ──────────────────────────────
+            // Background
             (isQueue ? ImprintColors.primary : ImprintColors.paper)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Fixed header — crossfades theme on tab change
                 header
 
-                // Divider
-                Rectangle()
-                    .fill(isQueue ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder)
-                    .frame(height: 1)
-                    .padding(.horizontal, 32)
+                VStack(spacing: 0) {
+                    // Divider
+                    Rectangle()
+                        .fill(isQueue ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder)
+                        .frame(height: 1)
+                        .padding(.horizontal, 32)
 
-                // Only the content area pages via TabView
-                TabView(selection: $selectedTab) {
-                    ForEach(RecordType.allPages) { page in
-                        RecordListView(
-                            recordType: page,
-                            mediaFilter: mediaFilter,
-                            searchText: searchText,
-                            isDark: page == .queued,
-                            allExpanded: allSectionsExpanded,
-                            expandTrigger: expandCollapseTrigger,
-                            onSelectRecord: { record in
-                                selectedRecord = record
-                            }
-                        )
-                        .tag(page)
+                    // Content pages
+                    TabView(selection: $selectedTab) {
+                        ForEach(RecordType.allPages) { page in
+                            RecordListView(
+                                recordType: page,
+                                mediaFilter: mediaFilter,
+                                searchText: searchText,
+                                isDark: page == .queued,
+                                allExpanded: allSectionsExpanded,
+                                expandTrigger: expandCollapseTrigger,
+                                onSelectRecord: { record in
+                                    selectedRecord = record
+                                }
+                            )
+                            .tag(page)
+                        }
                     }
+                    .tabViewStyle(.page(indexDisplayMode: .never))
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
             }
 
             // Toast message
-            if let message = toastMessage {
-                VStack {
-                    Spacer()
+            VStack {
+                Spacer()
 
-                    Text(message)
-                        .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(isQueue ? ImprintColors.paper : ImprintColors.primary)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(isQueue ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(
-                                    isQueue ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
-                                    lineWidth: 2
-                                )
-                        )
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                .padding(.bottom, 130)
-                .allowsHitTesting(false)
-                .zIndex(10)
+                (Text(toastMessage ?? "").font(ImprintFonts.jetBrainsBold(12))
+                 + Text(" added to Log").font(ImprintFonts.jetBrainsMedium(12)))
+                    .foregroundStyle(ImprintColors.primary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(ImprintColors.accentBlue)
+                    )
+                    .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
+                    .scaleEffect(toastVisible ? 1.0 : 0.9)
+                    .opacity(toastVisible ? 1.0 : 0.0)
             }
+            .padding(.horizontal, 40)
+            .padding(.bottom, 148)
+            .allowsHitTesting(false)
+            .zIndex(10)
 
-            // Fixed footer — crossfades theme on tab change
+            // Footer
             FooterToolbar(
                 searchText: $searchText,
                 isDark: isQueue,
@@ -134,10 +142,61 @@ struct ContentView: View {
                     }
                 }
             )
+            .allowsHitTesting(!showingSettings)
+
+            // ── z2: Settings background sheet ────────────────────
+            ImprintColors.accentBlue
+                .ignoresSafeArea()
+                .opacity(showingSettings ? 1 : 0)
+                .allowsHitTesting(false)
+                .zIndex(20)
+
+            // ── z3: Shared title bar + settings body ─────────────
+            VStack(spacing: 0) {
+                sharedTitleBar
+                    .zIndex(1) // keep title above settings body
+
+                if showingSettings {
+                    SettingsView()
+                        .transition(.opacity)
+                }
+
+                Spacer(minLength: 0)
+            }
+            .zIndex(25)
+
+            // ── z4: Global handle chip ───────────────────────────
+            VStack {
+                Spacer()
+                HStack {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.35)) {
+                            showingSettings.toggle()
+                        }
+                    } label: {
+                        Text("@olvr")
+                            .font(ImprintFonts.jetBrainsBold(14))
+                            .foregroundStyle(ImprintColors.accentBlue)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Capsule().fill(showingSettings ? ImprintColors.paper : Color.clear))
+                            .overlay(Capsule().strokeBorder(showingSettings ? ImprintColors.paper : ImprintColors.accentBlue, lineWidth: 2))
+                    }
+                    .frame(height: 48)
+                    .contentShape(Rectangle())
+                    .buttonStyle(.plain)
+                    Spacer()
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 40)
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .zIndex(30)
+
         }
         .animation(.easeInOut(duration: 0.35), value: selectedTab)
+        .animation(.easeInOut(duration: 0.25), value: showingSettings)
         .onChange(of: selectedTab) { _, _ in
-            mediaFilter = nil
             searchText = ""
         }
         .sheet(isPresented: $showingAddFilm) {
@@ -152,60 +211,94 @@ struct ContentView: View {
         .sheet(isPresented: $showingNewRecord) {
             RecordFormView(initialRecordType: selectedTab, initialMediaType: newRecordMediaType)
         }
-        .fullScreenCover(item: $selectedRecord) { record in
+        .fullScreenCover(item: $selectedRecord, onDismiss: {
+            if let name = pendingToastName {
+                pendingToastName = nil
+                showToast(name)
+            }
+        }) { record in
             let records = currentTabRecords
             let idx = records.firstIndex(where: { $0.id == record.id }) ?? 0
             RecordDetailPager(records: records, initialIndex: idx) { name in
-                // Small delay so the toast appears after the cover dismisses
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                    showToast("\(name) moved to log")
-                }
+                pendingToastName = name
             }
         }
     }
 
     // MARK: - Toast
 
-    private func showToast(_ message: String) {
-        withAnimation(.easeOut(duration: 0.3)) {
-            toastMessage = message
+    private func showToast(_ name: String) {
+        toastMessage = name
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+            toastVisible = true
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
             withAnimation(.easeIn(duration: 0.3)) {
+                toastVisible = false
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 toastMessage = nil
             }
         }
     }
 
-    // MARK: - Header
+    // MARK: - Header (z1 — Log / Queue only, no title)
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 32) {
-            HStack(alignment: .bottom) {
-                Text(selectedTab.label)
-                    .font(ImprintFonts.pageTitle)
-                    .foregroundStyle(isQueue ? ImprintColors.paper : ImprintColors.primary)
-                    .contentTransition(.numericText())
+            // Spacer matching the title bar height so content aligns below it
+            Color.clear.frame(height: 34)
 
-                Spacer()
+            MediaFilterBar(selection: $mediaFilter, isDark: isQueue)
+        }
+        .padding(.horizontal, 32)
+        .padding(.top, 32)
+        .padding(.bottom, 16)
+    }
 
+    // MARK: - Shared title bar (z3 — morphs between Log/Queue ↔ Settings)
+
+    private var sharedTitleBar: some View {
+        HStack(alignment: .lastTextBaseline) {
+            Text(showingSettings ? "Settings" : selectedTab.label)
+                .font(ImprintFonts.pageTitle)
+                .foregroundStyle(
+                    showingSettings ? ImprintColors.paper
+                    : isQueue ? ImprintColors.paper
+                    : ImprintColors.primary
+                )
+                .contentTransition(.numericText())
+
+            Spacer()
+
+            if showingSettings {
+                // Close button
+                Button {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        showingSettings = false
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(ImprintColors.accentBlueLight)
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+            } else {
+                // Dot page indicator — toggles Log / Queue
                 Button {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         selectedTab = isQueue ? .logged : .queued
                     }
                 } label: {
-                    ImprintLogo()
-                        .fill(isQueue ? ImprintColors.paper : ImprintColors.primary)
-                        .frame(width: 28, height: 28)
-                        .rotationEffect(.degrees(isQueue ? 180 : 0))
+                    DotIndicator(currentPage: selectedTab, isDark: isQueue)
+                        .frame(height: 28)
                 }
                 .buttonStyle(.plain)
             }
-
-            MediaFilterBar(selection: $mediaFilter, isDark: isQueue)
         }
         .padding(.horizontal, 32)
-        .padding(.top, 16)
+        .padding(.top, 32)
         .padding(.bottom, 16)
     }
 }

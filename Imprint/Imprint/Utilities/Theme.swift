@@ -63,7 +63,8 @@ enum ImprintColors {
     static let musicDarkBold = Color(hex: 0xE8705F)
 
     // Accent blue (confirm button, links)
-    static let accentBlue   = Color(hex: 0x4385BE)
+    static let accentBlue      = Color(hex: 0x4385BE)
+    static let accentBlueLight = Color(hex: 0x92BFDB)
 
     // Action buttons (detail view floating bar)
     static let actionLogAgain = Color(hex: 0x2F968D)  // cyan/cyan-500 – "log again" button

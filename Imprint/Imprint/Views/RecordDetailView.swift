@@ -9,6 +9,7 @@ struct RecordDetailView: View {
 
     @Bindable var record: Record
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
 
     // Pager-driven animation params (neutral defaults for standalone use)
     var topBarAnimOffset: CGFloat = 0
@@ -31,6 +32,8 @@ struct RecordDetailView: View {
 
     @State private var showingEditSheet = false
     @State private var showingLogAgainSheet = false
+    @State private var showingMoreMenu = false
+    @State private var showingDeleteConfirmation = false
     /// Tracks the record type before the edit sheet opens.
     @State private var typeBeforeEdit: RecordType?
     @State private var selectedTab: DetailTab = .note
@@ -103,7 +106,7 @@ struct RecordDetailView: View {
             .allowsHitTesting(false)
             .ignoresSafeArea(edges: .bottom)
 
-            // Floating bottom bar — nav buttons left, action buttons right
+            // Floating bottom bar — nav buttons left, more button right
             HStack {
                 // Navigation arrows — bottom-left
                 if canGoBack || canGoForward {
@@ -111,13 +114,66 @@ struct RecordDetailView: View {
                 }
 
                 Spacer()
-
-                // Edit / Log again — bottom-right
-                actionButtons
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 40)
             .frame(maxHeight: .infinity, alignment: .bottom)
+            .ignoresSafeArea(edges: .bottom)
+
+            // More menu scrim
+            if showingMoreMenu {
+                Color.black.opacity(0.15)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                            showingMoreMenu = false
+                        }
+                    }
+            }
+
+            // More menu + button
+            VStack(spacing: 0) {
+                Spacer()
+
+                HStack {
+                    Spacer()
+
+                    ZStack(alignment: .bottomTrailing) {
+                        // Menu anchored above the button
+                        if showingMoreMenu {
+                            moreMenu
+                                .offset(y: -58)
+                                .transition(
+                                    .asymmetric(
+                                        insertion: .opacity
+                                            .combined(with: .scale(scale: 0.85, anchor: .bottomTrailing))
+                                            .combined(with: .offset(y: 6)),
+                                        removal: .opacity
+                                            .combined(with: .scale(scale: 0.9, anchor: .bottomTrailing))
+                                    )
+                                )
+                        }
+
+                        // The ··· / × button
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                                showingMoreMenu.toggle()
+                            }
+                        } label: {
+                            Image(systemName: showingMoreMenu ? "xmark" : "ellipsis")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundStyle(isDark ? ImprintColors.primary : ImprintColors.paper)
+                                .frame(width: 48, height: 48)
+                                .background(isDark ? ImprintColors.paper : ImprintColors.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: showingMoreMenu ? 24 : 8))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 32)
+                .padding(.bottom, 40)
+            }
             .ignoresSafeArea(edges: .bottom)
         }
         .background(bgColor.ignoresSafeArea())
@@ -175,6 +231,15 @@ struct RecordDetailView: View {
             } else {
                 RecordFormView(existingRecord: record)
             }
+        }
+        .alert("Delete Entry", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                modelContext.delete(record)
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) { }
+        } message: {
+            Text("Are you sure you want to delete \"\(record.name)\"? This can't be undone.")
         }
         .transition(.move(edge: .bottom))
     }
@@ -263,39 +328,66 @@ struct RecordDetailView: View {
         }
     }
 
-    // MARK: - Floating Action Buttons
+    // MARK: - More Menu
 
-    private var actionButtons: some View {
-        HStack(spacing: 8) {
-            // Log again — only for logged entries, not queue items
+    private var moreMenu: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Edit
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    showingMoreMenu = false
+                }
+                typeBeforeEdit = record.recordType
+                showingEditSheet = true
+            } label: {
+                Text("Edit")
+                    .font(ImprintFonts.jetBrainsMedium(14))
+                    .foregroundStyle(textColor)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: 18)
+            }
+            .buttonStyle(.plain)
+
+            // Log again — only for logged entries
             if record.recordType == .logged {
                 Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                        showingMoreMenu = false
+                    }
                     showingLogAgainSheet = true
                 } label: {
-                    Image(systemName: "repeat")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 48, height: 48)
-                        .background(ImprintColors.actionLogAgain)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    Text("Log again")
+                        .font(ImprintFonts.jetBrainsMedium(14))
+                        .foregroundStyle(textColor)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(height: 18)
                 }
                 .buttonStyle(.plain)
             }
 
-            // Edit
+            // Delete
             Button {
-                typeBeforeEdit = record.recordType
-                showingEditSheet = true
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    showingMoreMenu = false
+                }
+                showingDeleteConfirmation = true
             } label: {
-                Image(systemName: "pencil")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
-                    .frame(width: 48, height: 48)
-                    .background(ImprintColors.actionEdit)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Text("Delete")
+                    .font(ImprintFonts.jetBrainsMedium(14))
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: 18)
             }
             .buttonStyle(.plain)
         }
+        .padding(20)
+        .frame(width: 162)
+        .background(bgColor)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(buttonBorderColor, lineWidth: 2)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Film Detail (Centered Layout + Tabs)

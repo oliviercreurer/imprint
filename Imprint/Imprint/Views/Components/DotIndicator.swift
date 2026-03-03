@@ -1,59 +1,42 @@
 import SwiftUI
 
-/// A non-interactive dot indicator showing the current page in a horizontal paging layout.
+/// A dot indicator showing the current page.
 ///
-/// Renders one dot per page inside a pill-shaped container with a subtle background.
-/// The active dot slides smoothly between positions as the user swipes.
-/// Colors adapt to the current theme (light or dark).
+/// Three dots (6×6 pt each, 5 pt spacing) inside a pill-shaped
+/// background. Active page highlighted in bold color, inactive
+/// pages in a subtle tone. No border.
 struct DotIndicator: View {
 
     let currentPage: RecordType
     var isDark: Bool = false
 
-    private let dotSize: CGFloat = 6
-    private let spacing: CGFloat = 6
-    private let pillPaddingH: CGFloat = 10
-    private let pillPaddingV: CGFloat = 10
-    private let pillCornerRadius: CGFloat = 999
-
     var body: some View {
-        ZStack {
-            // Background pill
+        HStack(spacing: 5) {
+            ForEach(RecordType.allPages) { page in
+                Circle()
+                    .fill(page == currentPage ? activeColor : inactiveColor)
+                    .frame(width: 6, height: 6)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 10)
+        .background(
             Capsule()
                 .fill(pillBackground)
-                .overlay(
-                    Capsule()
-                        .strokeBorder(pillBorder, lineWidth: 1.5)
-                )
-
-            // Dots
-            HStack(spacing: spacing) {
-                ForEach(RecordType.allPages) { page in
-                    Circle()
-                        .fill(page == currentPage ? fillColor : fillColor.opacity(0.3))
-                        .frame(width: dotSize, height: dotSize)
-                        .scaleEffect(page == currentPage ? 1.0 : 0.85)
-                        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: currentPage)
-                }
-            }
-            .padding(.horizontal, pillPaddingH)
-            .padding(.vertical, pillPaddingV)
-        }
-        .fixedSize()
-        .allowsHitTesting(false)
+        )
     }
 
     // MARK: - Colors
 
-    private var fillColor: Color {
+    private var activeColor: Color {
         isDark ? ImprintColors.paper : ImprintColors.primary
+    }
+
+    private var inactiveColor: Color {
+        isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder
     }
 
     private var pillBackground: Color {
         isDark ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg
-    }
-
-    private var pillBorder: Color {
-        isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder
     }
 }

@@ -86,11 +86,16 @@ struct FooterToolbar: View {
 
             // Gradient fade — transparent at top, solid at bottom
             LinearGradient(
-                colors: [bgColor.opacity(0), bgColor],
+                stops: [
+                    .init(color: bgColor.opacity(0), location: 0),
+                    .init(color: bgColor.opacity(0.4), location: 0.4),
+                    .init(color: bgColor.opacity(0.8), location: 0.7),
+                    .init(color: bgColor, location: 1.0)
+                ],
                 startPoint: .top,
-                endPoint: UnitPoint(x: 0.5, y: 0.35)
+                endPoint: .bottom
             )
-            .frame(height: 60)
+            .frame(height: 100)
             .allowsHitTesting(false)
 
             // Solid background region with content
@@ -137,21 +142,15 @@ struct FooterToolbar: View {
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
 
-                // Toolbar row
+                // Toolbar row — spacers keep layout balanced around the centered add button
                 HStack {
-                    // Settings
-                    Button {
-                        // TODO: Settings action
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 20))
-                            .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
-                            .frame(width: 24, height: 24)
-                    }
+                    // Left spacer — handle chip sits in ContentView's global overlay
+                    Color.clear
+                        .frame(width: 48, height: 48)
 
                     Spacer()
 
-                    // Invisible spacer matching the add button size to keep layout consistent
+                    // Right spacer matching the add button size
                     Color.clear
                         .frame(width: 48, height: 48)
                 }
