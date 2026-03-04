@@ -9,6 +9,9 @@ struct ImprintCalendarView: View {
     @Binding var selection: Date
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
+
     @State private var displayedMonth: Date
 
     private let calendar = Calendar.current
@@ -23,7 +26,7 @@ struct ImprintCalendarView: View {
         VStack(spacing: 0) {
             // Drag indicator
             RoundedRectangle(cornerRadius: 2.5)
-                .fill(ImprintColors.searchBorder)
+                .fill(ImprintColors.inputBorder(isDark))
                 .frame(width: 36, height: 5)
                 .padding(.top, 12)
                 .padding(.bottom, 24)
@@ -48,7 +51,7 @@ struct ImprintCalendarView: View {
             todayButton
                 .padding(.bottom, 40)
         }
-        .background(ImprintColors.paper)
+        .background(ImprintColors.modalBg(isDark))
         .presentationDetents([.height(520)])
         .presentationCornerRadius(48)
     }
@@ -64,7 +67,7 @@ struct ImprintCalendarView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
                     .frame(width: 48, height: 48)
                     .contentShape(Rectangle())
             }
@@ -74,7 +77,7 @@ struct ImprintCalendarView: View {
 
             Text(monthYearString)
                 .font(ImprintFonts.jetBrainsMedium(16))
-                .foregroundStyle(ImprintColors.primary)
+                .foregroundStyle(ImprintColors.headingText(isDark))
 
             Spacer()
 
@@ -85,7 +88,7 @@ struct ImprintCalendarView: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
                     .frame(width: 48, height: 48)
                     .contentShape(Rectangle())
             }
@@ -101,7 +104,7 @@ struct ImprintCalendarView: View {
             ForEach(adjusted, id: \.self) { symbol in
                 Text(symbol)
                     .font(ImprintFonts.jetBrainsMedium(14))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                     .frame(height: 32)
             }
         }
@@ -126,12 +129,12 @@ struct ImprintCalendarView: View {
             // Selected background
             if isSelected {
                 Circle()
-                    .fill(ImprintColors.primary)
+                    .fill(ImprintColors.headingText(isDark))
             }
             // Today outline (when not selected)
             else if isToday {
                 Circle()
-                    .strokeBorder(ImprintColors.searchBorder, lineWidth: 1.5)
+                    .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 1.5)
             }
 
             Text("\(day.dayNumber)")
@@ -150,11 +153,11 @@ struct ImprintCalendarView: View {
 
     private func dayTextColor(_ day: DayItem, isSelected: Bool) -> Color {
         if isSelected {
-            return ImprintColors.paper
+            return ImprintColors.modalBg(isDark)
         } else if !day.isCurrentMonth {
-            return ImprintColors.secondary.opacity(0.4)
+            return ImprintColors.secondaryText(isDark).opacity(0.4)
         } else {
-            return ImprintColors.primary
+            return ImprintColors.headingText(isDark)
         }
     }
 

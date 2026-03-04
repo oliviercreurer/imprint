@@ -95,7 +95,8 @@ struct RecordListView: View {
                         showBarChart: mediaFilter == nil,
                         searchText: searchText,
                         allExpanded: allExpanded,
-                        expandTrigger: expandTrigger
+                        expandTrigger: expandTrigger,
+                        isDark: isDark
                     ) { record in
                         onSelectRecord(record)
                     }
@@ -138,13 +139,13 @@ struct RecordListView: View {
 
             Text(recordType == .logged ? "No logged records yet" : "No queued records yet")
                 .font(ImprintFonts.jetBrainsMedium(16))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             Text(recordType == .logged
                 ? "Tap + to log something you've watched, read, or listened to."
                 : "Tap + to save something for later.")
                 .font(ImprintFonts.jetBrainsRegular(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
                 .multilineTextAlignment(.center)
 
             Spacer()

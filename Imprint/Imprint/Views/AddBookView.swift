@@ -15,6 +15,9 @@ struct AddBookView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
+
     /// The current record type context (logged vs queued).
     var initialRecordType: RecordType = .logged
 
@@ -84,7 +87,7 @@ struct AddBookView: View {
                     confirmContent
                 }
             }
-            .background(ImprintColors.paper)
+            .background(ImprintColors.modalBg(isDark))
 
             // Bottom fade + "Use this cover" button
             if phase == .coverPicker && !editions.isEmpty {
@@ -92,7 +95,7 @@ struct AddBookView: View {
                     Spacer()
 
                     LinearGradient(
-                        colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -107,16 +110,16 @@ struct AddBookView: View {
                         } label: {
                             Text("Use this cover")
                                 .font(ImprintFonts.jetBrainsMedium(16))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(ImprintColors.ctaText(isDark))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
-                                .background(Color.black)
+                                .background(ImprintColors.ctaFill(isDark))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
                     .padding(.horizontal, 32)
                     .padding(.bottom, 40)
-                    .background(ImprintColors.paper)
+                    .background(ImprintColors.modalBg(isDark))
                 }
                 .ignoresSafeArea(edges: .bottom)
             }
@@ -127,7 +130,7 @@ struct AddBookView: View {
                     Spacer()
 
                     LinearGradient(
-                        colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -137,7 +140,7 @@ struct AddBookView: View {
                     confirmButton
                         .padding(.horizontal, 32)
                         .padding(.bottom, 40)
-                        .background(ImprintColors.paper)
+                        .background(ImprintColors.modalBg(isDark))
                 }
                 .ignoresSafeArea(edges: .bottom)
                 .transition(
@@ -149,7 +152,7 @@ struct AddBookView: View {
             }
         }
         .keyboardDoneBar()
-        .background(ImprintColors.paper.ignoresSafeArea())
+        .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
         .presentationCornerRadius(42)
         .onAppear {
             populateFromExisting()
@@ -167,7 +170,7 @@ struct AddBookView: View {
         HStack {
             Text(headerTitle)
                 .font(ImprintFonts.modalTitle)
-                .foregroundStyle(.black)
+                .foregroundStyle(ImprintColors.headingText(isDark))
 
             Spacer()
 
@@ -179,12 +182,12 @@ struct AddBookView: View {
                 } label: {
                     Text("Back")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                         )
                 }
             }
@@ -192,7 +195,7 @@ struct AddBookView: View {
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
                     .frame(width: 32, height: 32)
             }
         }
@@ -218,11 +221,11 @@ struct AddBookView: View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             TextField("Search...", text: $query)
                 .font(ImprintFonts.searchPlaceholder)
-                .foregroundStyle(ImprintColors.primary)
+                .foregroundStyle(ImprintColors.modalText(isDark))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .focused($isSearchFocused)
@@ -241,16 +244,16 @@ struct AddBookView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
             }
         }
         .padding(.horizontal, 16)
         .frame(height: 48)
-        .background(ImprintColors.searchBg)
+        .background(ImprintColors.inputBg(isDark))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onChange(of: query) { _, newValue in
@@ -266,17 +269,17 @@ struct AddBookView: View {
                 Spacer()
                 Text("No results")
                     .font(ImprintFonts.jetBrainsRegular(14))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                 Spacer()
             } else if searchResults.isEmpty && query.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 24))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                     Text("Search for a book")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
             } else {
@@ -320,20 +323,20 @@ struct AddBookView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(book.title)
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .lineLimit(1)
 
                     if let author = book.primaryAuthor {
                         Text(author)
                             .font(ImprintFonts.jetBrainsRegular(14))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                             .lineLimit(1)
                     }
 
                     if let year = book.releaseYear {
                         Text(String(year))
                             .font(ImprintFonts.jetBrainsRegular(13))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                     }
                 }
 
@@ -341,7 +344,7 @@ struct AddBookView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
             }
             .padding(.vertical, 12)
         }
@@ -368,7 +371,7 @@ struct AddBookView: View {
                     ProgressView()
                     Text("Loading covers…")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
             } else if editions.isEmpty {
@@ -376,10 +379,10 @@ struct AddBookView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "photo.on.rectangle.angled")
                         .font(.system(size: 32))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                     Text("No covers available")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
 
@@ -390,18 +393,18 @@ struct AddBookView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(book.title)
                             .font(ImprintFonts.jetBrainsMedium(16))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(ImprintColors.headingText(isDark))
 
                         HStack(spacing: 8) {
                             if let year = book.releaseYear {
                                 Text(String(year))
                                     .font(ImprintFonts.jetBrainsRegular(14))
-                                    .foregroundStyle(ImprintColors.secondary)
+                                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                             }
                             if let author = book.primaryAuthor {
                                 Text(author)
                                     .font(ImprintFonts.jetBrainsRegular(14))
-                                    .foregroundStyle(ImprintColors.secondary)
+                                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                             }
                         }
                     }
@@ -445,9 +448,9 @@ struct AddBookView: View {
                     case .success(let image):
                         image.resizable().aspectRatio(2.0 / 3.0, contentMode: .fit)
                     case .failure:
-                        Color(hex: 0xE0E0E0).aspectRatio(2.0 / 3.0, contentMode: .fit)
+                        ImprintColors.failureBg(isDark).aspectRatio(2.0 / 3.0, contentMode: .fit)
                     default:
-                        ImprintColors.searchBg
+                        ImprintColors.inputBg(isDark)
                             .aspectRatio(2.0 / 3.0, contentMode: .fit)
                             .overlay(ProgressView().scaleEffect(0.7))
                     }
@@ -476,7 +479,7 @@ struct AddBookView: View {
     private var skipCoverButton: some View {
         VStack(spacing: 0) {
             LinearGradient(
-                colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -490,16 +493,16 @@ struct AddBookView: View {
                 } label: {
                     Text("Continue without cover")
                         .font(ImprintFonts.jetBrainsMedium(16))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(ImprintColors.ctaText(isDark))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(Color.black)
+                        .background(ImprintColors.ctaFill(isDark))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .padding(.horizontal, 32)
             }
             .padding(.bottom, 40)
-            .background(ImprintColors.paper)
+            .background(ImprintColors.modalBg(isDark))
         }
         .ignoresSafeArea(edges: .bottom)
     }
@@ -557,20 +560,20 @@ struct AddBookView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(selectedBook?.title ?? "")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                         .lineLimit(2)
 
                     VStack(alignment: .leading, spacing: 2) {
                         if let author = selectedBook?.primaryAuthor {
                             Text(author)
                                 .font(ImprintFonts.jetBrainsMedium(14))
-                                .foregroundStyle(ImprintColors.secondary)
+                                .foregroundStyle(ImprintColors.secondaryText(isDark))
                         }
 
                         if let year = selectedBook?.releaseYear {
                             Text(String(year))
                                 .font(ImprintFonts.jetBrainsMedium(14))
-                                .foregroundStyle(ImprintColors.searchBorder)
+                                .foregroundStyle(ImprintColors.tertiaryText(isDark))
                         }
                     }
                 }
@@ -595,13 +598,13 @@ struct AddBookView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Date")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             ImprintDatePicker(selection: $finishedOn, hasSetDate: $hasSetDate)
 
             Text("If left blank, this will be added to your queue")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
         }
     }
 
@@ -609,32 +612,32 @@ struct AddBookView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Pages")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             HStack(spacing: 16) {
                 TextField("Start page", text: $startPage)
                     .font(ImprintFonts.jetBrainsMedium(14))
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
                     .keyboardType(.numberPad)
                     .padding(.horizontal, 16)
                     .frame(height: 48)
-                    .background(ImprintColors.searchBg)
+                    .background(ImprintColors.inputBg(isDark))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                            .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
                 TextField("End page", text: $endPage)
                     .font(ImprintFonts.jetBrainsMedium(14))
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
                     .keyboardType(.numberPad)
                     .padding(.horizontal, 16)
                     .frame(height: 48)
-                    .background(ImprintColors.searchBg)
+                    .background(ImprintColors.inputBg(isDark))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                            .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                     )
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             }
@@ -645,18 +648,18 @@ struct AddBookView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text("Note")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             TextEditor(text: $note)
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.primary)
+                .foregroundStyle(ImprintColors.modalText(isDark))
                 .scrollContentBackground(.hidden)
                 .padding(16)
                 .frame(minHeight: 268)
-                .background(ImprintColors.searchBg)
+                .background(ImprintColors.inputBg(isDark))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                        .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
@@ -671,10 +674,10 @@ struct AddBookView: View {
         } label: {
             Text(confirmButtonLabel)
                 .font(ImprintFonts.jetBrainsMedium(16))
-                .foregroundStyle(.white)
+                .foregroundStyle(ImprintColors.ctaText(isDark))
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(Color.black)
+                .background(ImprintColors.ctaFill(isDark))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .contentTransition(.numericText())
                 .animation(.easeInOut(duration: 0.25), value: hasSetDate)

@@ -81,6 +81,51 @@ enum ImprintColors {
     static let chipInactive = Color(hex: 0xE6E6E6)
     static let chipText     = Color(hex: 0x7E7E7E)
     static let required     = Color(hex: 0xE74E4E)
+
+    // Dark mode form tokens
+    static let darkChipInactive = Color(hex: 0x3A3938)
+    static let darkChipText     = Color(hex: 0x9F9D96)
+
+    // MARK: - Appearance-Aware Resolvers
+
+    /// Background for modals and sheets.
+    static func modalBg(_ isDark: Bool) -> Color { isDark ? primary : paper }
+
+    /// Primary text color on modal backgrounds.
+    static func modalText(_ isDark: Bool) -> Color { isDark ? paper : primary }
+
+    /// Heading / label text (used where `.black` was hardcoded).
+    static func headingText(_ isDark: Bool) -> Color { isDark ? paper : primary }
+
+    /// Secondary / muted text.
+    static func secondaryText(_ isDark: Bool) -> Color { isDark ? darkSecondary : secondary }
+
+    /// Tertiary / faintest text.
+    static func tertiaryText(_ isDark: Bool) -> Color { isDark ? darkSurfaceBorder : searchBorder }
+
+    /// Input field background.
+    static func inputBg(_ isDark: Bool) -> Color { isDark ? darkSurfaceBg : searchBg }
+
+    /// Input field / card border.
+    static func inputBorder(_ isDark: Bool) -> Color { isDark ? darkSurfaceBorder : searchBorder }
+
+    /// CTA button fill.
+    static func ctaFill(_ isDark: Bool) -> Color { isDark ? paper : primary }
+
+    /// CTA button text.
+    static func ctaText(_ isDark: Bool) -> Color { isDark ? primary : paper }
+
+    /// Chip inactive fill (form media-type chips).
+    static func chipInactiveFill(_ isDark: Bool) -> Color { isDark ? darkChipInactive : chipInactive }
+
+    /// Chip inactive text (form media-type chips).
+    static func chipInactiveText(_ isDark: Bool) -> Color { isDark ? darkChipText : chipText }
+
+    /// Placeholder loading color for images.
+    static func placeholderBg(_ isDark: Bool) -> Color { isDark ? darkSurfaceBg : searchBg }
+
+    /// Failure placeholder color for images.
+    static func failureBg(_ isDark: Bool) -> Color { isDark ? darkSurfaceBorder : Color(hex: 0xE0E0E0) }
 }
 
 // MARK: - Color Hex Init
@@ -139,7 +184,7 @@ enum ImprintFonts {
 
     // MARK: Semantic shortcuts
 
-    static var pageTitle: Font { platypiExtraBold(32) }
+    static var pageTitle: Font { platypiSemiBold(32) }
     static var modalTitle: Font { platypiSemiBold(20) }
     static var detailTitle: Font { platypiSemiBold(32) }
     static var detailSubtitle: Font { platypiSemiBold(24) }

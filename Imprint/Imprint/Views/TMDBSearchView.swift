@@ -16,6 +16,8 @@ struct TMDBSelection {
 struct TMDBSearchView: View {
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
 
     /// Called when the user confirms a film selection.
     var onSelect: (TMDBSelection) -> Void
@@ -49,7 +51,7 @@ struct TMDBSearchView: View {
                 searchPhase
             }
         }
-        .background(ImprintColors.paper.ignoresSafeArea())
+        .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
         .presentationCornerRadius(42)
     }
 
@@ -59,7 +61,7 @@ struct TMDBSearchView: View {
         HStack {
             Text(selectedMovie != nil ? "Choose a poster" : "Search TMDB")
                 .font(ImprintFonts.modalTitle)
-                .foregroundStyle(.black)
+                .foregroundStyle(ImprintColors.headingText(isDark))
 
             Spacer()
 
@@ -75,12 +77,12 @@ struct TMDBSearchView: View {
                 } label: {
                     Text("Back")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                         )
                 }
             }
@@ -90,14 +92,14 @@ struct TMDBSearchView: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
                     .frame(width: 32, height: 32)
             }
         }
         .padding(.horizontal, 32)
         .padding(.top, 48)
         .padding(.bottom, 16)
-        .background(ImprintColors.paper)
+        .background(ImprintColors.modalBg(isDark))
     }
 
     // MARK: - Search Phase
@@ -108,11 +110,11 @@ struct TMDBSearchView: View {
             HStack(spacing: 12) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
 
                 TextField("Film title…", text: $query)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .onSubmit { triggerSearch() }
@@ -129,16 +131,16 @@ struct TMDBSearchView: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                     }
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(ImprintColors.searchBg)
+            .background(ImprintColors.inputBg(isDark))
             .overlay(
                 RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                    .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
             )
             .clipShape(RoundedRectangle(cornerRadius: 8))
             .padding(.horizontal, 32)
@@ -149,7 +151,7 @@ struct TMDBSearchView: View {
                 Spacer()
                 Text("No results")
                     .font(ImprintFonts.jetBrainsRegular(14))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                 Spacer()
             } else {
                 ScrollView {
@@ -201,19 +203,19 @@ struct TMDBSearchView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(movie.title)
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .lineLimit(1)
 
                     if let year = movie.releaseYear {
                         Text(String(year))
                             .font(ImprintFonts.jetBrainsRegular(14))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                     }
 
                     if let overview = movie.overview, !overview.isEmpty {
                         Text(overview)
                             .font(ImprintFonts.jetBrainsRegular(13))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                             .lineLimit(2)
                     }
                 }
@@ -222,7 +224,7 @@ struct TMDBSearchView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
             }
             .padding(.vertical, 12)
         }
@@ -249,7 +251,7 @@ struct TMDBSearchView: View {
                     ProgressView()
                     Text("Loading posters…")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
             } else if posters.isEmpty {
@@ -257,10 +259,10 @@ struct TMDBSearchView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "photo.on.rectangle.angled")
                         .font(.system(size: 32))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                     Text("No posters available")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
 
@@ -271,18 +273,18 @@ struct TMDBSearchView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(movie.title)
                         .font(ImprintFonts.jetBrainsMedium(16))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
 
                     HStack(spacing: 8) {
                         if let year = movieDetail?.releaseYear ?? movie.releaseYear {
                             Text(String(year))
                                 .font(ImprintFonts.jetBrainsRegular(14))
-                                .foregroundStyle(ImprintColors.secondary)
+                                .foregroundStyle(ImprintColors.secondaryText(isDark))
                         }
                         if let director = movieDetail?.director {
                             Text("dir. \(director)")
                                 .font(ImprintFonts.jetBrainsRegular(14))
-                                .foregroundStyle(ImprintColors.secondary)
+                                .foregroundStyle(ImprintColors.secondaryText(isDark))
                         }
                     }
                 }
@@ -329,10 +331,10 @@ struct TMDBSearchView: View {
                             .resizable()
                             .aspectRatio(2.0 / 3.0, contentMode: .fit)
                     case .failure:
-                        Color(hex: 0xE0E0E0)
+                        ImprintColors.failureBg(isDark)
                             .aspectRatio(2.0 / 3.0, contentMode: .fit)
                     default:
-                        ImprintColors.searchBg
+                        ImprintColors.inputBg(isDark)
                             .aspectRatio(2.0 / 3.0, contentMode: .fit)
                             .overlay(ProgressView().scaleEffect(0.7))
                     }
@@ -361,7 +363,7 @@ struct TMDBSearchView: View {
     private func confirmButton(for movie: TMDBMovie) -> some View {
         VStack(spacing: 0) {
             LinearGradient(
-                colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -373,16 +375,16 @@ struct TMDBSearchView: View {
                 } label: {
                     Text("Use this film")
                         .font(ImprintFonts.jetBrainsMedium(16))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(ImprintColors.ctaText(isDark))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(Color.black)
+                        .background(ImprintColors.ctaFill(isDark))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .padding(.horizontal, 32)
             }
             .padding(.bottom, 40)
-            .background(ImprintColors.paper)
+            .background(ImprintColors.modalBg(isDark))
         }
         .ignoresSafeArea(edges: .bottom)
     }

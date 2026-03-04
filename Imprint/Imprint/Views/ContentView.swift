@@ -18,6 +18,7 @@ struct ContentView: View {
     @Query(sort: \Record.createdAt, order: .reverse) private var allRecords: [Record]
 
     @AppStorage("disabledMediaTypes") private var disabledMediaTypesRaw = ""
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
 
     @State private var selectedTab: RecordType = .logged
     @State private var mediaFilter: MediaType?
@@ -44,6 +45,7 @@ struct ContentView: View {
     @State private var expandCollapseTrigger = 0
 
     private var isQueue: Bool { selectedTab == .queued }
+    private var isDark: Bool { appearanceMode == "dark" }
 
     /// Media types the user has enabled in Settings.
     private var enabledTypes: [MediaType] {
@@ -76,7 +78,7 @@ struct ContentView: View {
 
             // ── z1: Underlying page ──────────────────────────────
             // Background
-            (isQueue ? ImprintColors.primary : ImprintColors.paper)
+            (isDark ? ImprintColors.primary : ImprintColors.paper)
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
@@ -85,7 +87,7 @@ struct ContentView: View {
                 VStack(spacing: 0) {
                     // Divider
                     Rectangle()
-                        .fill(isQueue ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder)
+                        .fill(isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder)
                         .frame(height: 1)
                         .padding(.horizontal, 32)
 
@@ -97,7 +99,7 @@ struct ContentView: View {
                                 mediaFilter: mediaFilter,
                                 searchText: searchText,
                                 enabledMediaTypes: enabledTypes,
-                                isDark: page == .queued,
+                                isDark: isDark,
                                 allExpanded: allSectionsExpanded,
                                 expandTrigger: expandCollapseTrigger,
                                 onSelectRecord: { record in
@@ -136,7 +138,7 @@ struct ContentView: View {
             // Footer
             FooterToolbar(
                 searchText: $searchText,
-                isDark: isQueue,
+                isDark: isDark,
                 placeholder: isQueue ? "Search queue" : "Search log",
                 onAdd: { mediaType in
                     if mediaType == .film {
@@ -265,7 +267,7 @@ struct ContentView: View {
             // Spacer matching the title bar height so content aligns below it
             Color.clear.frame(height: 34)
 
-            MediaFilterBar(selection: $mediaFilter, isDark: isQueue)
+            MediaFilterBar(selection: $mediaFilter, isDark: isDark)
         }
         .padding(.horizontal, 32)
         .padding(.top, 32)
@@ -280,7 +282,7 @@ struct ContentView: View {
                 .font(ImprintFonts.pageTitle)
                 .foregroundStyle(
                     showingSettings ? ImprintColors.paper
-                    : isQueue ? ImprintColors.paper
+                    : isDark ? ImprintColors.paper
                     : ImprintColors.primary
                 )
                 .contentTransition(.numericText())
@@ -307,7 +309,7 @@ struct ContentView: View {
                         selectedTab = isQueue ? .logged : .queued
                     }
                 } label: {
-                    DotIndicator(currentPage: selectedTab, isDark: isQueue)
+                    DotIndicator(currentPage: selectedTab, isDark: isDark)
                         .frame(height: 28)
                 }
                 .buttonStyle(.plain)

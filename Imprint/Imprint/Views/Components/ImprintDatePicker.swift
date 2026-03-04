@@ -9,6 +9,9 @@ struct ImprintDatePicker: View {
     @Binding var selection: Date
     @Binding var hasSetDate: Bool
 
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
+
     @State private var showingCalendar = false
 
     var body: some View {
@@ -19,7 +22,7 @@ struct ImprintDatePicker: View {
                 } label: {
                     Text(formattedDate(selection))
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                 }
                 .buttonStyle(.plain)
 
@@ -30,7 +33,7 @@ struct ImprintDatePicker: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 .buttonStyle(.plain)
             } else {
@@ -39,7 +42,7 @@ struct ImprintDatePicker: View {
                 } label: {
                     Text("Select date")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 .buttonStyle(.plain)
 
@@ -48,10 +51,10 @@ struct ImprintDatePicker: View {
         }
         .padding(.horizontal, 16)
         .frame(height: 48)
-        .background(ImprintColors.searchBg)
+        .background(ImprintColors.inputBg(isDark))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .sheet(isPresented: $showingCalendar) {

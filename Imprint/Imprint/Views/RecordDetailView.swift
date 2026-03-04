@@ -26,9 +26,9 @@ struct RecordDetailView: View {
     /// Called when an edit moves a queued item to the log, passing the record name.
     var onMovedToLog: ((String) -> Void)? = nil
 
-    /// Derives dark mode from the record's current type so the view
-    /// reacts live when an entry moves between queue and log.
-    private var isDark: Bool { record.recordType == .queued }
+    /// Follows the global appearance preference.
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
 
     @State private var showingEditSheet = false
     @State private var showingLogAgainSheet = false

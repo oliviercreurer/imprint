@@ -27,11 +27,10 @@ struct RecordDetailPager: View {
     /// swap, preventing any poster/image flash between entries.
     @State private var curtainOpacity: Double = 0
 
-    /// Background color for the curtain, derived from the current record.
+    /// Background color for the curtain, follows global appearance.
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
     private var curtainColor: Color {
-        records[currentIndex].recordType == .queued
-            ? ImprintColors.primary
-            : ImprintColors.paper
+        appearanceMode == "dark" ? ImprintColors.primary : ImprintColors.paper
     }
 
     // MARK: - Body

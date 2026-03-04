@@ -9,6 +9,8 @@ struct RecordFormView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
 
     var existingRecord: Record?
 
@@ -61,7 +63,7 @@ struct RecordFormView: View {
             HStack {
                 Text(isEditing ? "Edit Entry" : (recordType == .logged ? "New Log Entry" : "New Queue Entry"))
                     .font(ImprintFonts.modalTitle)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
 
                 Spacer()
 
@@ -70,14 +72,14 @@ struct RecordFormView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .frame(width: 32, height: 32)
                 }
             }
             .padding(.horizontal, 32)
             .padding(.top, 48)
             .padding(.bottom, 16)
-            .background(ImprintColors.paper)
+            .background(ImprintColors.modalBg(isDark))
 
             // Scrollable form content
             ZStack(alignment: .bottom) {
@@ -97,7 +99,7 @@ struct RecordFormView: View {
                                 HStack {
                                     Text("Date")
                                         .font(ImprintFonts.formLabel)
-                                        .foregroundStyle(.black)
+                                        .foregroundStyle(ImprintColors.headingText(isDark))
                                     Spacer()
                                     Text("Required")
                                         .font(ImprintFonts.formLabel)
@@ -108,27 +110,27 @@ struct RecordFormView: View {
                         }
 
                         // Name
-                        FormField(label: "Name", isRequired: true) {
+                        FormField(label: "Name", isRequired: true, isDark: isDark) {
                             TextField("", text: $name)
                                 .font(ImprintFonts.formValue)
-                                .foregroundStyle(ImprintColors.primary)
+                                .foregroundStyle(ImprintColors.modalText(isDark))
                         }
 
                         // Media-specific fields
                         mediaSpecificFields
 
                         // Country
-                        FormField(label: "Country") {
+                        FormField(label: "Country", isDark: isDark) {
                             TextField("", text: $country)
                                 .font(ImprintFonts.formValue)
-                                .foregroundStyle(ImprintColors.primary)
+                                .foregroundStyle(ImprintColors.modalText(isDark))
                         }
 
                         // Note
-                        FormField(label: "Note") {
+                        FormField(label: "Note", isDark: isDark) {
                             TextEditor(text: $note)
                                 .font(ImprintFonts.noteBody)
-                                .foregroundStyle(ImprintColors.primary)
+                                .foregroundStyle(ImprintColors.modalText(isDark))
                                 .frame(minHeight: 120)
                                 .scrollContentBackground(.hidden)
                         }
@@ -141,7 +143,7 @@ struct RecordFormView: View {
             // Bottom fade + save button
             VStack(spacing: 0) {
                 LinearGradient(
-                    colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                    colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
@@ -154,10 +156,10 @@ struct RecordFormView: View {
                     } label: {
                         Text(isEditing ? "Save" : "Add Entry")
                             .font(ImprintFonts.jetBrainsMedium(16))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(ImprintColors.ctaText(isDark))
                             .frame(maxWidth: .infinity)
                             .frame(height: 48)
-                            .background(canSave ? Color.black : Color.black.opacity(0.3))
+                            .background(canSave ? ImprintColors.ctaFill(isDark) : ImprintColors.ctaFill(isDark).opacity(0.3))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                     .disabled(!canSave)
@@ -165,12 +167,12 @@ struct RecordFormView: View {
                 }
                 .padding(.bottom, 40)
                 .frame(maxWidth: .infinity)
-                .background(ImprintColors.paper)
+                .background(ImprintColors.modalBg(isDark))
             }
             .ignoresSafeArea(edges: .bottom)
             }
         }
-        .background(ImprintColors.paper.ignoresSafeArea())
+        .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
         .onAppear(perform: populateFromExisting)
         .presentationCornerRadius(42)
         .sheet(isPresented: $showingTMDBSearch) {
@@ -199,8 +201,8 @@ struct RecordFormView: View {
                         .font(ImprintFonts.jetBrainsMedium(14))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
-                        .background(mediaType == type ? Color.black : ImprintColors.chipInactive)
-                        .foregroundStyle(mediaType == type ? .white : ImprintColors.chipText)
+                        .background(mediaType == type ? ImprintColors.ctaFill(isDark) : ImprintColors.chipInactiveFill(isDark))
+                        .foregroundStyle(mediaType == type ? ImprintColors.ctaText(isDark) : ImprintColors.chipInactiveText(isDark))
                         .clipShape(RoundedRectangle(cornerRadius: 2))
                 }
                 .buttonStyle(.plain)
@@ -220,10 +222,10 @@ struct RecordFormView: View {
                 } label: {
                     Text(type == .logged ? "Log" : "Queue")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(recordType == type ? .white : .black)
+                        .foregroundStyle(recordType == type ? ImprintColors.ctaText(isDark) : ImprintColors.headingText(isDark))
                         .frame(maxWidth: .infinity)
                         .frame(height: 40)
-                        .background(recordType == type ? Color.black : ImprintColors.searchBg)
+                        .background(recordType == type ? ImprintColors.ctaFill(isDark) : ImprintColors.inputBg(isDark))
                 }
                 .buttonStyle(.plain)
             }
@@ -231,7 +233,7 @@ struct RecordFormView: View {
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
         )
     }
 
@@ -274,7 +276,7 @@ struct RecordFormView: View {
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                             default:
-                                ImprintColors.searchBg
+                                ImprintColors.inputBg(isDark)
                             }
                         }
                         .frame(width: 60, height: 90)
@@ -283,7 +285,7 @@ struct RecordFormView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Poster selected")
                                 .font(ImprintFonts.formLabel)
-                                .foregroundStyle(ImprintColors.secondary)
+                                .foregroundStyle(ImprintColors.secondaryText(isDark))
                             Button {
                                 posterPath = ""
                             } label: {
@@ -296,64 +298,64 @@ struct RecordFormView: View {
                 }
             }
 
-            FormField(label: "Director") {
+            FormField(label: "Director", isDark: isDark) {
                 TextField("", text: $director)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
             }
-            FormField(label: "Release year") {
+            FormField(label: "Release year", isDark: isDark) {
                 TextField("", text: $filmReleaseDate)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
                     .keyboardType(.numberPad)
             }
         case .tv:
-            FormField(label: "Creator") {
+            FormField(label: "Creator", isDark: isDark) {
                 TextField("", text: $creator)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
             }
             HStack(spacing: 16) {
-                FormField(label: "Season") {
+                FormField(label: "Season", isDark: isDark) {
                     TextField("", text: $season)
                         .font(ImprintFonts.formValue)
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                         .keyboardType(.numberPad)
                 }
-                FormField(label: "Episode") {
+                FormField(label: "Episode", isDark: isDark) {
                     TextField("", text: $episode)
                         .font(ImprintFonts.formValue)
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                         .keyboardType(.numberPad)
                 }
             }
         case .book:
-            FormField(label: "Author") {
+            FormField(label: "Author", isDark: isDark) {
                 TextField("", text: $author)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
             }
-            FormField(label: "Publication year") {
+            FormField(label: "Publication year", isDark: isDark) {
                 TextField("", text: $publicationDate)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
                     .keyboardType(.numberPad)
             }
-            FormField(label: "Translator") {
+            FormField(label: "Translator", isDark: isDark) {
                 TextField("", text: $translator)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
             }
         case .music:
-            FormField(label: "Artist") {
+            FormField(label: "Artist", isDark: isDark) {
                 TextField("", text: $artist)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
             }
-            FormField(label: "Release year") {
+            FormField(label: "Release year", isDark: isDark) {
                 TextField("", text: $musicReleaseDate)
                     .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.primary)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
                     .keyboardType(.numberPad)
             }
         }
@@ -444,6 +446,7 @@ struct RecordFormView: View {
 private struct FormField<Content: View>: View {
     let label: String
     var isRequired: Bool = false
+    var isDark: Bool = false
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -451,7 +454,7 @@ private struct FormField<Content: View>: View {
             HStack {
                 Text(label)
                     .font(ImprintFonts.formLabel)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
 
                 if isRequired {
                     Spacer()
@@ -465,10 +468,10 @@ private struct FormField<Content: View>: View {
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .frame(minHeight: 48)
-                .background(ImprintColors.searchBg)
+                .background(ImprintColors.inputBg(isDark))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                        .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
