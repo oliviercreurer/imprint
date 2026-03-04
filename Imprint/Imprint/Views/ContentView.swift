@@ -137,9 +137,7 @@ struct ContentView: View {
 
             // Footer
             FooterToolbar(
-                searchText: $searchText,
                 isDark: isDark,
-                placeholder: isQueue ? "Search queue" : "Search log",
                 onAdd: { mediaType in
                     if mediaType == .film {
                         showingAddFilm = true
@@ -260,14 +258,58 @@ struct ContentView: View {
         }
     }
 
+    @FocusState private var isSearchFocused: Bool
+
     // MARK: - Header (z1 — Log / Queue only, no title)
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 32) {
+        VStack(alignment: .leading, spacing: 12) {
             // Spacer matching the title bar height so content aligns below it
             Color.clear.frame(height: 34)
 
             MediaFilterBar(selection: $mediaFilter, isDark: isDark)
+
+            // Search bar
+            HStack(spacing: 8) {
+                TextField("", text: $searchText, prompt:
+                    Text(isQueue ? "Search queue" : "Search log")
+                        .font(ImprintFonts.searchPlaceholder)
+                        .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
+                )
+                .font(ImprintFonts.searchPlaceholder)
+                .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
+                .focused($isSearchFocused)
+                .submitLabel(.done)
+                .onSubmit { isSearchFocused = false }
+
+                // Clear / dismiss button when focused or has text
+                if isSearchFocused || !searchText.isEmpty {
+                    Button {
+                        if searchText.isEmpty {
+                            isSearchFocused = false
+                        } else {
+                            searchText = ""
+                        }
+                    } label: {
+                        Image(systemName: searchText.isEmpty ? "keyboard.chevron.compact.down" : "xmark.circle.fill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 48)
+            .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(
+                        isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
+                        lineWidth: 2
+                    )
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
         }
         .padding(.horizontal, 32)
         .padding(.top, 32)

@@ -1,23 +1,20 @@
 import SwiftUI
 
-/// The custom footer overlay with gradient fade, search bar, and toolbar icons.
+/// The custom footer overlay with gradient fade and + button.
 /// Tapping the + button reveals an animated media-type picker menu.
 struct FooterToolbar: View {
 
-    @Binding var searchText: String
     let isDark: Bool
-    let placeholder: String
     let onAdd: (MediaType) -> Void
 
     @State private var showingMenu = false
-    @FocusState private var isSearchFocused: Bool
     @Environment(\.enabledMediaTypes) private var enabledTypes
 
     private var bgColor: Color { isDark ? ImprintColors.primary : ImprintColors.paper }
 
     var body: some View {
         ZStack {
-            // LAYER 1: Footer chrome (gradient + search + settings + add button)
+            // LAYER 1: Footer chrome (gradient + toolbar row)
             footerChrome
 
             // LAYER 2: Full-screen scrim — covers everything including the footer
@@ -80,7 +77,7 @@ struct FooterToolbar: View {
 
     // MARK: - Footer Chrome
 
-    /// The base footer layer: gradient, search bar, settings icon, and add button placeholder.
+    /// The base footer layer: gradient and toolbar row.
     private var footerChrome: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -101,48 +98,6 @@ struct FooterToolbar: View {
 
             // Solid background region with content
             VStack(spacing: 16) {
-                // Search bar
-                HStack(spacing: 8) {
-                    TextField("", text: $searchText, prompt:
-                        Text(placeholder)
-                            .font(ImprintFonts.searchPlaceholder)
-                            .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
-                    )
-                    .font(ImprintFonts.searchPlaceholder)
-                    .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
-                    .focused($isSearchFocused)
-                    .submitLabel(.done)
-                    .onSubmit { isSearchFocused = false }
-
-                    // Clear / dismiss button when focused or has text
-                    if isSearchFocused || !searchText.isEmpty {
-                        Button {
-                            if searchText.isEmpty {
-                                isSearchFocused = false
-                            } else {
-                                searchText = ""
-                            }
-                        } label: {
-                            Image(systemName: searchText.isEmpty ? "keyboard.chevron.compact.down" : "xmark.circle.fill")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
-                        }
-                        .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                    }
-                }
-                .padding(.horizontal, 16)
-                .frame(height: 48)
-                .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(
-                            isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
-                            lineWidth: 2
-                        )
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
-
                 // Toolbar row — spacers keep layout balanced around the centered add button
                 HStack {
                     // Left spacer — handle chip sits in ContentView's global overlay
