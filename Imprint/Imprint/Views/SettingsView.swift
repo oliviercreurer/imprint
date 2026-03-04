@@ -3,14 +3,26 @@ import SwiftUI
 struct SettingsView: View {
 
     @AppStorage("disabledMediaTypes") private var disabledMediaTypesRaw = ""
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
 
     private var enabledTypes: [MediaType] {
         enabledMediaTypes(disabledRaw: disabledMediaTypesRaw)
     }
 
+    private var isDarkMode: Bool { appearanceMode == "dark" }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
+
+                // ── Appearance ────────────────────────────────
+                Text("Appearance")
+                    .font(ImprintFonts.platypiSemiBold(16))
+                    .foregroundStyle(ImprintColors.paper)
+                    .staggeredAppearance(index: 0)
+
+                appearanceSegmentedControl
+                    .staggeredAppearance(index: 1)
 
                 // ── Enabled Media Types ────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
@@ -23,13 +35,13 @@ struct SettingsView: View {
                         .foregroundStyle(ImprintColors.accentBlueLight)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .staggeredAppearance(index: 0)
+                .staggeredAppearance(index: 2)
 
                 // ── Toggle rows ────────────────────────────────
                 VStack(spacing: 4) {
                     ForEach(Array(MediaType.allCases.enumerated()), id: \.element.id) { offset, type in
                         mediaTypeRow(type)
-                            .staggeredAppearance(index: offset + 1)
+                            .staggeredAppearance(index: offset + 3)
                     }
                 }
             }
@@ -38,6 +50,55 @@ struct SettingsView: View {
             .padding(.bottom, 220)
         }
         .scrollIndicators(.hidden)
+    }
+
+    // MARK: - Appearance Segmented Control
+
+    private var appearanceSegmentedControl: some View {
+        GeometryReader { geo in
+            let segmentWidth = geo.size.width / 2
+            let pillOffset = isDarkMode ? segmentWidth : 0
+
+            ZStack(alignment: .leading) {
+                // Sliding pill
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(ImprintColors.paper)
+                    .frame(width: segmentWidth, height: 40)
+                    .offset(x: pillOffset)
+
+                // Labels
+                HStack(spacing: 0) {
+                    Button {
+                        appearanceMode = "light"
+                    } label: {
+                        Text("Light")
+                            .font(ImprintFonts.jetBrainsMedium(14))
+                            .foregroundStyle(!isDarkMode ? ImprintColors.accentBlueBolder : ImprintColors.paper)
+                            .frame(width: segmentWidth, height: 40)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        appearanceMode = "dark"
+                    } label: {
+                        Text("Dark")
+                            .font(ImprintFonts.jetBrainsMedium(14))
+                            .foregroundStyle(isDarkMode ? ImprintColors.accentBlueBolder : ImprintColors.paper)
+                            .frame(width: segmentWidth, height: 40)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .animation(.spring(response: 0.3, dampingFraction: 0.82), value: isDarkMode)
+        }
+        .frame(height: 40)
+        .padding(4)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(ImprintColors.accentBlueBolder)
+        )
     }
 
     // MARK: - Media Type Row

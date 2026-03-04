@@ -15,6 +15,9 @@ struct AddTVView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
+    @AppStorage("appearanceMode") private var appearanceMode = "light"
+    private var isDark: Bool { appearanceMode == "dark" }
+
     /// The current record type context (logged vs queued).
     var initialRecordType: RecordType = .logged
 
@@ -92,7 +95,7 @@ struct AddTVView: View {
                     confirmContent
                 }
             }
-            .background(ImprintColors.paper)
+            .background(ImprintColors.modalBg(isDark))
 
             // Bottom fade + "Use this poster" button
             if phase == .posterPicker && !posters.isEmpty {
@@ -100,7 +103,7 @@ struct AddTVView: View {
                     Spacer()
 
                     LinearGradient(
-                        colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -115,16 +118,16 @@ struct AddTVView: View {
                         } label: {
                             Text("Use this poster")
                                 .font(ImprintFonts.jetBrainsMedium(16))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(ImprintColors.ctaText(isDark))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 48)
-                                .background(Color.black)
+                                .background(ImprintColors.ctaFill(isDark))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
                     .padding(.horizontal, 32)
                     .padding(.bottom, 40)
-                    .background(ImprintColors.paper)
+                    .background(ImprintColors.modalBg(isDark))
                 }
                 .ignoresSafeArea(edges: .bottom)
             }
@@ -134,7 +137,7 @@ struct AddTVView: View {
                     Spacer()
 
                     LinearGradient(
-                        colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -144,7 +147,7 @@ struct AddTVView: View {
                     confirmButton
                         .padding(.horizontal, 32)
                         .padding(.bottom, 40)
-                        .background(ImprintColors.paper)
+                        .background(ImprintColors.modalBg(isDark))
                 }
                 .ignoresSafeArea(edges: .bottom)
                 .transition(
@@ -156,7 +159,7 @@ struct AddTVView: View {
             }
         }
         .keyboardDoneBar()
-        .background(ImprintColors.paper.ignoresSafeArea())
+        .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
         .presentationCornerRadius(42)
         .onAppear {
             populateFromExisting()
@@ -175,7 +178,7 @@ struct AddTVView: View {
         HStack {
             Text(headerTitle)
                 .font(ImprintFonts.modalTitle)
-                .foregroundStyle(.black)
+                .foregroundStyle(ImprintColors.headingText(isDark))
 
             Spacer()
 
@@ -187,12 +190,12 @@ struct AddTVView: View {
                 } label: {
                     Text("Back")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                         )
                 }
             }
@@ -200,7 +203,7 @@ struct AddTVView: View {
             Button { dismiss() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.black)
+                    .foregroundStyle(ImprintColors.headingText(isDark))
                     .frame(width: 32, height: 32)
             }
         }
@@ -226,11 +229,11 @@ struct AddTVView: View {
         HStack(spacing: 12) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             TextField("Search...", text: $query)
                 .font(ImprintFonts.searchPlaceholder)
-                .foregroundStyle(ImprintColors.primary)
+                .foregroundStyle(ImprintColors.modalText(isDark))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .focused($isSearchFocused)
@@ -249,16 +252,16 @@ struct AddTVView: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
             }
         }
         .padding(.horizontal, 16)
         .frame(height: 48)
-        .background(ImprintColors.searchBg)
+        .background(ImprintColors.inputBg(isDark))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .onChange(of: query) { _, newValue in
@@ -274,17 +277,17 @@ struct AddTVView: View {
                 Spacer()
                 Text("No results")
                     .font(ImprintFonts.jetBrainsRegular(14))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                 Spacer()
             } else if searchResults.isEmpty && query.isEmpty {
                 Spacer()
                 VStack(spacing: 8) {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 24))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                     Text("Search for a show")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
             } else {
@@ -327,19 +330,19 @@ struct AddTVView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(show.name)
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(.black)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
                         .lineLimit(1)
 
                     if let year = show.firstAirYear {
                         Text(String(year))
                             .font(ImprintFonts.jetBrainsRegular(14))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                     }
 
                     if let overview = show.overview, !overview.isEmpty {
                         Text(overview)
                             .font(ImprintFonts.jetBrainsRegular(13))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                             .lineLimit(2)
                     }
                 }
@@ -348,7 +351,7 @@ struct AddTVView: View {
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
             }
             .padding(.vertical, 12)
         }
@@ -375,7 +378,7 @@ struct AddTVView: View {
                     ProgressView()
                     Text("Loading posters…")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
             } else if posters.isEmpty {
@@ -383,10 +386,10 @@ struct AddTVView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "photo.on.rectangle.angled")
                         .font(.system(size: 32))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                     Text("No posters available")
                         .font(ImprintFonts.jetBrainsRegular(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
                 Spacer()
 
@@ -397,18 +400,18 @@ struct AddTVView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(show.name)
                             .font(ImprintFonts.jetBrainsMedium(16))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(ImprintColors.headingText(isDark))
 
                         HStack(spacing: 8) {
                             if let year = showDetail?.firstAirYear ?? show.firstAirYear {
                                 Text(String(year))
                                     .font(ImprintFonts.jetBrainsRegular(14))
-                                    .foregroundStyle(ImprintColors.secondary)
+                                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                             }
                             if let creator = showDetail?.creatorName {
                                 Text(creator)
                                     .font(ImprintFonts.jetBrainsRegular(14))
-                                    .foregroundStyle(ImprintColors.secondary)
+                                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                             }
                         }
                     }
@@ -454,7 +457,7 @@ struct AddTVView: View {
                     case .failure:
                         Color(hex: 0xE0E0E0).aspectRatio(2.0 / 3.0, contentMode: .fit)
                     default:
-                        ImprintColors.searchBg
+                        ImprintColors.inputBg(isDark)
                             .aspectRatio(2.0 / 3.0, contentMode: .fit)
                             .overlay(ProgressView().scaleEffect(0.7))
                     }
@@ -483,7 +486,7 @@ struct AddTVView: View {
     private var skipPosterButton: some View {
         VStack(spacing: 0) {
             LinearGradient(
-                colors: [ImprintColors.paper.opacity(0), ImprintColors.paper],
+                colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -497,16 +500,16 @@ struct AddTVView: View {
                 } label: {
                     Text("Continue without poster")
                         .font(ImprintFonts.jetBrainsMedium(16))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(ImprintColors.ctaText(isDark))
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
-                        .background(Color.black)
+                        .background(ImprintColors.ctaFill(isDark))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
                 .padding(.horizontal, 32)
             }
             .padding(.bottom, 40)
-            .background(ImprintColors.paper)
+            .background(ImprintColors.modalBg(isDark))
         }
         .ignoresSafeArea(edges: .bottom)
     }
@@ -544,7 +547,7 @@ struct AddTVView: View {
                     case .success(let image):
                         image.resizable().aspectRatio(contentMode: .fill)
                     default:
-                        ImprintColors.searchBg
+                        ImprintColors.inputBg(isDark)
                     }
                 }
                 .frame(width: 78, height: 119)
@@ -564,14 +567,14 @@ struct AddTVView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(selectedShow?.name ?? "")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                         .lineLimit(1)
 
                     VStack(alignment: .leading, spacing: 2) {
                         if let creator = showDetail?.creatorList {
                             Text(creator)
                                 .font(ImprintFonts.jetBrainsMedium(14))
-                                .foregroundStyle(ImprintColors.secondary)
+                                .foregroundStyle(ImprintColors.secondaryText(isDark))
                         }
 
                         HStack(spacing: 0) {
@@ -583,7 +586,7 @@ struct AddTVView: View {
                             }
                         }
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.searchBorder)
+                        .foregroundStyle(ImprintColors.tertiaryText(isDark))
                     }
                 }
 
@@ -606,13 +609,13 @@ struct AddTVView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text("Date")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             ImprintDatePicker(selection: $finishedOn, hasSetDate: $hasSetDate)
 
             Text("If left blank, this will be added to your queue")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
         }
     }
 
@@ -637,7 +640,7 @@ struct AddTVView: View {
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 20))
-                                .foregroundStyle(ImprintColors.secondary)
+                                .foregroundStyle(ImprintColors.secondaryText(isDark))
                                 .frame(height: 48)
                         }
                         .buttonStyle(.plain)
@@ -649,7 +652,7 @@ struct AddTVView: View {
                     if let detail = episodeDetails[row.id] {
                         Text(detail.name)
                             .font(ImprintFonts.jetBrainsMedium(14))
-                            .foregroundStyle(ImprintColors.secondary)
+                            .foregroundStyle(ImprintColors.secondaryText(isDark))
                             .transition(.opacity)
                     }
                 }
@@ -690,7 +693,7 @@ struct AddTVView: View {
                 if index == 0 {
                     Text("Season")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
 
                 if hasMetadata {
@@ -712,14 +715,14 @@ struct AddTVView: View {
                 } else {
                     TextField("", text: $episodeRows[index].season)
                         .font(ImprintFonts.formValue)
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                         .keyboardType(.numberPad)
                         .padding(.horizontal, 16)
                         .frame(height: 48)
-                        .background(ImprintColors.searchBg)
+                        .background(ImprintColors.inputBg(isDark))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .onChange(of: episodeRows[index].season) { _, _ in
@@ -733,7 +736,7 @@ struct AddTVView: View {
                 if index == 0 {
                     Text("Episode")
                         .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(ImprintColors.secondary)
+                        .foregroundStyle(ImprintColors.secondaryText(isDark))
                 }
 
                 if hasMetadata, let meta = selectedSeasonMeta {
@@ -754,14 +757,14 @@ struct AddTVView: View {
                 } else {
                     TextField("", text: $episodeRows[index].episode)
                         .font(ImprintFonts.formValue)
-                        .foregroundStyle(ImprintColors.primary)
+                        .foregroundStyle(ImprintColors.modalText(isDark))
                         .keyboardType(.numberPad)
                         .padding(.horizontal, 16)
                         .frame(height: 48)
-                        .background(ImprintColors.searchBg)
+                        .background(ImprintColors.inputBg(isDark))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .onChange(of: episodeRows[index].episode) { _, _ in
@@ -776,11 +779,11 @@ struct AddTVView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text("\(ep.name) (S\(String(format: "%02d", ep.seasonNumber)).E\(String(format: "%02d", ep.episodeNumber)))")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
             if let dir = ep.director {
                 Text("Dir. \(dir)")
                     .font(ImprintFonts.jetBrainsMedium(14))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
             }
             let metaParts: [String] = {
                 var items: [String] = []
@@ -791,7 +794,7 @@ struct AddTVView: View {
             if !metaParts.isEmpty {
                 Text(metaParts.joined(separator: " • "))
                     .font(ImprintFonts.jetBrainsMedium(14))
-                    .foregroundStyle(ImprintColors.searchBorder)
+                    .foregroundStyle(ImprintColors.tertiaryText(isDark))
             }
         }
         .transition(.opacity)
@@ -801,18 +804,18 @@ struct AddTVView: View {
         HStack {
             Text(text)
                 .font(ImprintFonts.formValue)
-                .foregroundStyle(text == "–" ? ImprintColors.secondary : ImprintColors.primary)
+                .foregroundStyle(text == "–" ? ImprintColors.secondaryText(isDark) : ImprintColors.modalText(isDark))
             Spacer()
             Image(systemName: "chevron.up.chevron.down")
                 .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
         }
         .padding(.horizontal, 16)
         .frame(height: 48)
-        .background(ImprintColors.searchBg)
+        .background(ImprintColors.inputBg(isDark))
         .overlay(
             RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 8))
     }
@@ -821,18 +824,18 @@ struct AddTVView: View {
         VStack(alignment: .leading, spacing: 5) {
             Text("Note")
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.secondary)
+                .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             TextEditor(text: $note)
                 .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.primary)
+                .foregroundStyle(ImprintColors.modalText(isDark))
                 .scrollContentBackground(.hidden)
                 .padding(16)
                 .frame(minHeight: 268)
-                .background(ImprintColors.searchBg)
+                .background(ImprintColors.inputBg(isDark))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(ImprintColors.searchBorder, lineWidth: 2)
+                        .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
@@ -847,10 +850,10 @@ struct AddTVView: View {
         } label: {
             Text(confirmButtonLabel)
                 .font(ImprintFonts.jetBrainsMedium(16))
-                .foregroundStyle(.white)
+                .foregroundStyle(ImprintColors.ctaText(isDark))
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
-                .background(Color.black)
+                .background(ImprintColors.ctaFill(isDark))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .contentTransition(.numericText())
                 .animation(.easeInOut(duration: 0.25), value: hasSetDate)

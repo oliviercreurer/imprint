@@ -9,6 +9,7 @@ struct MonthSectionView: View {
     var searchText: String = ""
     var allExpanded: Bool = true
     var expandTrigger: Int = 0
+    var isDark: Bool = false
     let onTapRecord: (Record) -> Void
 
     @State private var isExpanded = true
@@ -32,7 +33,7 @@ struct MonthSectionView: View {
                     Button {
                         onTapRecord(record)
                     } label: {
-                        RecordRowView(record: record)
+                        RecordRowView(record: record, isDark: isDark)
                     }
                     .buttonStyle(.plain)
                     .staggeredAppearance(index: index)
@@ -73,18 +74,18 @@ struct MonthSectionView: View {
             HStack(spacing: 8) {
                 Image(systemName: "chevron.down")
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
                     .rotationEffect(.degrees(isExpanded ? 0 : -90))
 
                 Text(group.monthName.uppercased())
                     .font(ImprintFonts.monthHeader)
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
 
                 Spacer()
 
                 Text("\(group.totalCount)")
                     .font(ImprintFonts.jetBrainsRegular(14))
-                    .foregroundStyle(ImprintColors.secondary)
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
             }
         }
         .buttonStyle(.plain)
