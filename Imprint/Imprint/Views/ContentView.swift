@@ -23,6 +23,10 @@ struct ContentView: View {
     @State private var selectedTab: RecordType = .logged
     @State private var mediaFilter: MediaType?
     @State private var searchText = ""
+    /// Debounced copy of searchText — drives filtering after a short delay.
+    @State private var debouncedSearchText = ""
+    /// Task handle for the debounce timer so we can cancel on each keystroke.
+    @State private var debounceTask: Task<Void, Never>?
     @State private var showingNewRecord = false
     @State private var showingAddFilm = false
     @State private var showingAddBook = false
@@ -61,8 +65,8 @@ struct ContentView: View {
             results = results.filter { $0.mediaType == mediaFilter }
         }
 
-        if !searchText.isEmpty {
-            let query = searchText.lowercased()
+        if !debouncedSearchText.isEmpty {
+            let query = debouncedSearchText.lowercased()
             results = results.filter { record in
                 record.name.lowercased().contains(query)
                 || (record.creatorLabel?.lowercased().contains(query) ?? false)
@@ -85,19 +89,13 @@ struct ContentView: View {
                 header
 
                 VStack(spacing: 0) {
-                    // Divider
-                    Rectangle()
-                        .fill(isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder)
-                        .frame(height: 1)
-                        .padding(.horizontal, 32)
-
                     // Content pages
                     TabView(selection: $selectedTab) {
                         ForEach(RecordType.allPages) { page in
                             RecordListView(
                                 recordType: page,
                                 mediaFilter: mediaFilter,
-                                searchText: searchText,
+                                searchText: debouncedSearchText,
                                 enabledMediaTypes: enabledTypes,
                                 isDark: isDark,
                                 allExpanded: allSectionsExpanded,
@@ -206,8 +204,23 @@ struct ContentView: View {
         .animation(.easeInOut(duration: 0.35), value: selectedTab)
         .animation(.easeInOut(duration: 0.25), value: showingSettings)
         .environment(\.enabledMediaTypes, enabledTypes)
+        .onChange(of: searchText) { _, newValue in
+            debounceTask?.cancel()
+            if newValue.isEmpty {
+                // Clear immediately so the list snaps back without delay
+                debouncedSearchText = ""
+            } else {
+                debounceTask = Task {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    guard !Task.isCancelled else { return }
+                    debouncedSearchText = newValue
+                }
+            }
+        }
         .onChange(of: selectedTab) { _, _ in
             searchText = ""
+            debouncedSearchText = ""
+            debounceTask?.cancel()
         }
         .onChange(of: disabledMediaTypesRaw) { _, _ in
             // Clear the active filter if its type was just disabled
@@ -264,8 +277,8 @@ struct ContentView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Spacer matching the title bar height so content aligns below it
-            Color.clear.frame(height: 34)
+            // Spacer matching the title bar height + 12pt breathing room below title
+            Color.clear.frame(height: 46)
 
             MediaFilterBar(selection: $mediaFilter, isDark: isDark)
 
