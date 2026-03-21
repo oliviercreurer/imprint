@@ -1,19 +1,33 @@
 import Foundation
 import SwiftData
 
-/// A single month section containing its records and media-type counts.
+/// A single month section containing its records and category-based counts.
 struct MonthGroup: Identifiable {
     let id: String          // e.g. "2025-04"
     let monthName: String   // e.g. "April"
     let year: Int
     let records: [Record]
 
-    /// Number of records per media type, for the bar chart.
-    var mediaCounts: [(type: MediaType, count: Int)] {
-        MediaType.allCases.compactMap { type in
-            let count = records.filter { $0.mediaType == type }.count
-            return count > 0 ? (type, count) : nil
+    /// Number of records per category, for the bar chart.
+    /// Returns tuples of (colorHex, count) sorted by category sort order.
+    var categoryCounts: [(colorHex: String, count: Int)] {
+        // Group records by their category
+        var countsByCategory: [PersistentIdentifier: (colorHex: String, sortOrder: Int, count: Int)] = [:]
+
+        for record in records {
+            if let category = record.category {
+                let id = category.persistentModelID
+                if countsByCategory[id] != nil {
+                    countsByCategory[id]!.count += 1
+                } else {
+                    countsByCategory[id] = (colorHex: category.colorHex, sortOrder: category.sortOrder, count: 1)
+                }
+            }
         }
+
+        return countsByCategory.values
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .map { (colorHex: $0.colorHex, count: $0.count) }
     }
 
     var totalCount: Int { records.count }

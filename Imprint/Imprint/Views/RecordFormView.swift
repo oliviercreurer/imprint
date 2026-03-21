@@ -1,10 +1,12 @@
 import SwiftUI
 import SwiftData
 
-/// A custom modal form for creating a new record or editing an existing one.
+/// A universal modal form for creating or editing a record in any category.
 ///
-/// Styled to match the Figma design: white background with rounded top corners,
-/// custom form fields with labeled inputs, and media-type chip selector.
+/// Dynamically renders fields from the selected category's `FieldDefinition`s.
+///
+/// Layout: pinned title bar → scrollable form → bottom fade + save button.
+/// Fields: Name (required) → Date (for logged) → dynamic fields → Note.
 struct RecordFormView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -12,49 +14,55 @@ struct RecordFormView: View {
     @AppStorage("appearanceMode") private var appearanceMode = "light"
     private var isDark: Bool { appearanceMode == "dark" }
 
+    /// All enabled categories, sorted by display order.
+    @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
+    private var enabledCategories: [Category]
+
+    /// If set, we're editing an existing record.
     var existingRecord: Record?
+
+    /// The category to pre-select (used when adding from the footer menu).
+    var initialCategory: Category?
+
+    /// The initial record type context (logged vs queued).
+    var initialRecordType: RecordType
+
+    /// When true, pre-populates from existingRecord but creates a new entry.
+    var isRelogging: Bool = false
 
     // MARK: - Form State
 
+    @State private var selectedCategory: Category?
     @State private var recordType: RecordType
-    @State private var mediaType: MediaType = .film
     @State private var name: String = ""
     @State private var note: String = ""
-    @State private var country: String = ""
-
-    // Logged fields
     @State private var finishedOn: Date = Date()
+    @State private var hasSetDate = false
 
-    // Film
-    @State private var director: String = ""
-    @State private var filmReleaseDate: String = ""
-    @State private var tmdbId: String = ""
-    @State private var posterPath: String = ""
-    @State private var showingTMDBSearch = false
+    /// Dynamic field values keyed by FieldDefinition's persistentModelID.
+    /// Text and number fields store strings; date fields store Date; image fields store Data.
+    @State private var textValues: [PersistentIdentifier: String] = [:]
+    @State private var dateValues: [PersistentIdentifier: Date] = [:]
+    @State private var imageDataValues: [PersistentIdentifier: Data] = [:]
 
-    // TV
-    @State private var creator: String = ""
-    @State private var season: String = ""
-    @State private var episode: String = ""
-
-    // Book
-    @State private var author: String = ""
-    @State private var publicationDate: String = ""
-    @State private var translator: String = ""
-
-    // Music
-    @State private var artist: String = ""
-    @State private var musicReleaseDate: String = ""
-
-    private var isEditing: Bool { existingRecord != nil }
-    private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var isEditing: Bool { existingRecord != nil && !isRelogging }
+    private var canSave: Bool {
+        !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedCategory != nil
+    }
 
     // MARK: - Init
 
-    init(initialRecordType: RecordType = .logged, initialMediaType: MediaType = .film, existingRecord: Record? = nil) {
+    init(
+        initialRecordType: RecordType = .logged,
+        initialCategory: Category? = nil,
+        existingRecord: Record? = nil,
+        isRelogging: Bool = false
+    ) {
+        self.initialRecordType = initialRecordType
+        self.initialCategory = initialCategory
         self.existingRecord = existingRecord
+        self.isRelogging = isRelogging
         _recordType = State(initialValue: existingRecord?.recordType ?? initialRecordType)
-        _mediaType = State(initialValue: existingRecord?.mediaType ?? initialMediaType)
     }
 
     var body: some View {
@@ -83,10 +91,10 @@ struct RecordFormView: View {
 
             // Scrollable form content
             ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Media type chips
-                    mediaTypeChips
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Category chips
+                        categoryChips
 
                         // Log / Queue toggle (hidden when editing)
                         if !isEditing {
@@ -105,7 +113,7 @@ struct RecordFormView: View {
                                         .font(ImprintFonts.formLabel)
                                         .foregroundStyle(ImprintColors.required)
                                 }
-                                ImprintDatePicker(selection: $finishedOn, hasSetDate: .constant(true))
+                                ImprintDatePicker(selection: $finishedOn, hasSetDate: $hasSetDate)
                             }
                         }
 
@@ -116,14 +124,11 @@ struct RecordFormView: View {
                                 .foregroundStyle(ImprintColors.modalText(isDark))
                         }
 
-                        // Media-specific fields
-                        mediaSpecificFields
-
-                        // Country
-                        FormField(label: "Country", isDark: isDark) {
-                            TextField("", text: $country)
-                                .font(ImprintFonts.formValue)
-                                .foregroundStyle(ImprintColors.modalText(isDark))
+                        // Dynamic fields from category
+                        if let category = selectedCategory {
+                            ForEach(category.sortedFieldDefinitions) { definition in
+                                dynamicField(for: definition)
+                            }
                         }
 
                         // Note
@@ -135,77 +140,82 @@ struct RecordFormView: View {
                                 .scrollContentBackground(.hidden)
                         }
                     }
-                .padding(.horizontal, 32)
-                .padding(.top, 16)
-                .padding(.bottom, 200)
-            }
-
-            // Bottom fade + save button
-            VStack(spacing: 0) {
-                LinearGradient(
-                    colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 60)
-
-                VStack {
-                    Button {
-                        saveRecord()
-                        dismiss()
-                    } label: {
-                        Text(isEditing ? "Save" : "Add Entry")
-                            .font(ImprintFonts.jetBrainsMedium(16))
-                            .foregroundStyle(ImprintColors.ctaText(isDark))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background(canSave ? ImprintColors.ctaFill(isDark) : ImprintColors.ctaFill(isDark).opacity(0.3))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .disabled(!canSave)
                     .padding(.horizontal, 32)
+                    .padding(.top, 16)
+                    .padding(.bottom, 200)
                 }
-                .padding(.bottom, 40)
-                .frame(maxWidth: .infinity)
-                .background(ImprintColors.modalBg(isDark))
-            }
-            .ignoresSafeArea(edges: .bottom)
+
+                // Bottom fade + save button
+                VStack(spacing: 0) {
+                    LinearGradient(
+                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    .frame(height: 60)
+
+                    VStack {
+                        Button {
+                            saveRecord()
+                            dismiss()
+                        } label: {
+                            Text(isEditing ? "Save" : "Add Entry")
+                                .font(ImprintFonts.jetBrainsMedium(16))
+                                .foregroundStyle(ImprintColors.ctaText(isDark))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 48)
+                                .background(canSave ? ImprintColors.ctaFill(isDark) : ImprintColors.ctaFill(isDark).opacity(0.3))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .disabled(!canSave)
+                        .padding(.horizontal, 32)
+                    }
+                    .padding(.bottom, 40)
+                    .frame(maxWidth: .infinity)
+                    .background(ImprintColors.modalBg(isDark))
+                }
+                .ignoresSafeArea(edges: .bottom)
             }
         }
         .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
-        .onAppear(perform: populateFromExisting)
+        .onAppear(perform: populateInitialState)
         .presentationCornerRadius(42)
-        .sheet(isPresented: $showingTMDBSearch) {
-            TMDBSearchView { selection in
-                name = selection.title
-                director = selection.director ?? ""
-                filmReleaseDate = selection.releaseYear.map(String.init) ?? ""
-                country = selection.country ?? country
-                tmdbId = String(selection.tmdbId)
-                posterPath = selection.posterPath ?? ""
-            }
-        }
+        .keyboardDoneBar()
     }
 
-    // MARK: - Media Type Chips
+    // MARK: - Category Chips
 
-    private var mediaTypeChips: some View {
-        HStack(spacing: 8) {
-            ForEach(MediaType.allCases) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        mediaType = type
+    private var categoryChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(enabledCategories) { category in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            selectedCategory = category
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: category.iconName)
+                                .font(.system(size: 12))
+                            Text(category.name)
+                                .font(ImprintFonts.jetBrainsMedium(14))
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            selectedCategory?.persistentModelID == category.persistentModelID
+                                ? ColorDerivation.boldColor(from: category.colorHex)
+                                : ImprintColors.chipInactiveFill(isDark)
+                        )
+                        .foregroundStyle(
+                            selectedCategory?.persistentModelID == category.persistentModelID
+                                ? .white
+                                : ImprintColors.chipInactiveText(isDark)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                     }
-                } label: {
-                    Text(type.label)
-                        .font(ImprintFonts.jetBrainsMedium(14))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 2)
-                        .background(mediaType == type ? ImprintColors.ctaFill(isDark) : ImprintColors.chipInactiveFill(isDark))
-                        .foregroundStyle(mediaType == type ? ImprintColors.ctaText(isDark) : ImprintColors.chipInactiveText(isDark))
-                        .clipShape(RoundedRectangle(cornerRadius: 2))
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -237,213 +247,249 @@ struct RecordFormView: View {
         )
     }
 
-    // MARK: - Media-Specific Fields
+    // MARK: - Dynamic Field Rendering
 
     @ViewBuilder
-    private var mediaSpecificFields: some View {
-        switch mediaType {
-        case .film:
-            // TMDB search button
-            if TMDBService.shared.isConfigured {
-                Button {
-                    showingTMDBSearch = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "magnifyingglass")
-                            .font(.system(size: 13, weight: .medium))
-                        Text(tmdbId.isEmpty ? "Search TMDB" : "Search again")
-                            .font(ImprintFonts.jetBrainsMedium(14))
-                    }
-                    .foregroundStyle(ImprintColors.filmBold)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(ImprintColors.filmSubtlest)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .strokeBorder(ImprintColors.filmSubtler, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
+    private func dynamicField(for definition: FieldDefinition) -> some View {
+        let id = definition.persistentModelID
 
-                // Show selected poster thumbnail
-                if !posterPath.isEmpty, let url = TMDBService.posterURL(path: posterPath, size: "w185") {
-                    HStack(spacing: 12) {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fill)
-                            default:
-                                ImprintColors.inputBg(isDark)
-                            }
-                        }
-                        .frame(width: 60, height: 90)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
+        switch definition.fieldType {
+        case .text:
+            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
+                TextField("", text: textBinding(for: id))
+                    .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
+            }
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Poster selected")
-                                .font(ImprintFonts.formLabel)
-                                .foregroundStyle(ImprintColors.secondaryText(isDark))
-                            Button {
-                                posterPath = ""
-                            } label: {
-                                Text("Remove")
-                                    .font(ImprintFonts.jetBrainsRegular(13))
-                                    .foregroundStyle(ImprintColors.required)
-                            }
-                        }
+        case .number:
+            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
+                TextField("", text: textBinding(for: id))
+                    .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
+                    .keyboardType(.decimalPad)
+            }
+
+        case .date:
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(definition.label)
+                        .font(ImprintFonts.formLabel)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
+                    if definition.isRequired {
+                        Spacer()
+                        Text("Required")
+                            .font(ImprintFonts.formLabel)
+                            .foregroundStyle(ImprintColors.required)
                     }
                 }
+                ImprintDatePicker(
+                    selection: dateBinding(for: id),
+                    hasSetDate: .constant(dateValues[id] != nil)
+                )
             }
 
-            FormField(label: "Director", isDark: isDark) {
-                TextField("", text: $director)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-            }
-            FormField(label: "Release year", isDark: isDark) {
-                TextField("", text: $filmReleaseDate)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .keyboardType(.numberPad)
-            }
-        case .tv:
-            FormField(label: "Creator", isDark: isDark) {
-                TextField("", text: $creator)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-            }
-            HStack(spacing: 16) {
-                FormField(label: "Season", isDark: isDark) {
-                    TextField("", text: $season)
-                        .font(ImprintFonts.formValue)
-                        .foregroundStyle(ImprintColors.modalText(isDark))
-                        .keyboardType(.numberPad)
+        case .image:
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text(definition.label)
+                        .font(ImprintFonts.formLabel)
+                        .foregroundStyle(ImprintColors.headingText(isDark))
+                    if definition.isRequired {
+                        Spacer()
+                        Text("Required")
+                            .font(ImprintFonts.formLabel)
+                            .foregroundStyle(ImprintColors.required)
+                    }
                 }
-                FormField(label: "Episode", isDark: isDark) {
-                    TextField("", text: $episode)
-                        .font(ImprintFonts.formValue)
-                        .foregroundStyle(ImprintColors.modalText(isDark))
-                        .keyboardType(.numberPad)
-                }
-            }
-        case .book:
-            FormField(label: "Author", isDark: isDark) {
-                TextField("", text: $author)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-            }
-            FormField(label: "Publication year", isDark: isDark) {
-                TextField("", text: $publicationDate)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .keyboardType(.numberPad)
-            }
-            FormField(label: "Translator", isDark: isDark) {
-                TextField("", text: $translator)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-            }
-        case .music:
-            FormField(label: "Artist", isDark: isDark) {
-                TextField("", text: $artist)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-            }
-            FormField(label: "Release year", isDark: isDark) {
-                TextField("", text: $musicReleaseDate)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .keyboardType(.numberPad)
+                ImageFieldView(
+                    imageData: imageBinding(for: id),
+                    isDark: isDark
+                )
             }
         }
+    }
+
+    // MARK: - Value Bindings
+
+    private func textBinding(for id: PersistentIdentifier) -> Binding<String> {
+        Binding(
+            get: { textValues[id] ?? "" },
+            set: { textValues[id] = $0 }
+        )
+    }
+
+    private func dateBinding(for id: PersistentIdentifier) -> Binding<Date> {
+        Binding(
+            get: { dateValues[id] ?? Date() },
+            set: { dateValues[id] = $0 }
+        )
+    }
+
+    private func imageBinding(for id: PersistentIdentifier) -> Binding<Data?> {
+        Binding(
+            get: { imageDataValues[id] },
+            set: { imageDataValues[id] = $0 }
+        )
     }
 
     // MARK: - Save
 
     private func saveRecord() {
-        let record = existingRecord ?? Record(
-            recordType: recordType,
-            mediaType: mediaType,
-            name: name.trimmingCharacters(in: .whitespaces)
-        )
+        guard let category = selectedCategory else { return }
+
+        let record: Record
+        if let existing = existingRecord, !isRelogging {
+            record = existing
+        } else {
+            record = Record(
+                recordType: recordType,
+                category: category,
+                name: name.trimmingCharacters(in: .whitespaces)
+            )
+        }
 
         record.recordType = recordType
-        record.mediaType = mediaType
+        record.category = category
         record.name = name.trimmingCharacters(in: .whitespaces)
         record.note = note.isEmpty ? nil : note
-        record.country = country.isEmpty ? nil : country
 
         if recordType == .logged {
-            record.finishedOn = finishedOn
+            record.finishedOn = hasSetDate ? finishedOn : Date()
         } else {
             record.finishedOn = nil
             record.startedOn = nil
         }
 
-        record.director = mediaType == .film ? nilIfEmpty(director) : nil
-        record.filmReleaseDate = mediaType == .film ? Int(filmReleaseDate) : nil
-        record.tmdbId = mediaType == .film ? Int(tmdbId) : nil
-        record.posterPath = mediaType == .film ? nilIfEmpty(posterPath) : nil
-        record.creator = mediaType == .tv ? nilIfEmpty(creator) : nil
-        record.season = mediaType == .tv ? Int(season) : nil
-        record.episode = mediaType == .tv ? Int(episode) : nil
-        record.author = mediaType == .book ? nilIfEmpty(author) : nil
-        record.publicationDate = mediaType == .book ? Int(publicationDate) : nil
-        record.translator = mediaType == .book ? nilIfEmpty(translator) : nil
-        record.artist = mediaType == .music ? nilIfEmpty(artist) : nil
-        record.musicReleaseDate = mediaType == .music ? Int(musicReleaseDate) : nil
+        // If editing, remove existing field values — we'll recreate them
+        if isEditing {
+            for oldValue in record.fieldValues {
+                modelContext.delete(oldValue)
+            }
+            record.fieldValues = []
+        }
 
-        if existingRecord == nil {
+        // Create field values from the form state
+        for definition in category.sortedFieldDefinitions {
+            let fieldValue = FieldValue(fieldDefinition: definition)
+            fieldValue.record = record
+
+            let id = definition.persistentModelID
+
+            switch definition.fieldType {
+            case .text:
+                let text = textValues[id]?.trimmingCharacters(in: .whitespaces) ?? ""
+                fieldValue.textValue = text.isEmpty ? nil : text
+
+            case .number:
+                let text = textValues[id]?.trimmingCharacters(in: .whitespaces) ?? ""
+                fieldValue.numberValue = Double(text)
+
+            case .date:
+                fieldValue.dateValue = dateValues[id]
+
+            case .image:
+                if let data = imageDataValues[id] {
+                    // Save image to disk and store the path
+                    let path = saveImageToDisk(data: data, recordId: record.persistentModelID, fieldId: id)
+                    fieldValue.imagePath = path
+                }
+            }
+
+            // Only insert field values that have content
+            if fieldValue.hasValue {
+                modelContext.insert(fieldValue)
+                record.fieldValues.append(fieldValue)
+            }
+        }
+
+        if existingRecord == nil || isRelogging {
             modelContext.insert(record)
         }
     }
 
-    // MARK: - Populate for Editing
+    // MARK: - Image Persistence
 
-    private func populateFromExisting() {
-        guard let record = existingRecord else { return }
+    /// Saves image data to disk and returns the relative path.
+    private func saveImageToDisk(data: Data, recordId: PersistentIdentifier, fieldId: PersistentIdentifier) -> String? {
+        guard let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
 
-        recordType = record.recordType
-        mediaType = record.mediaType
-        name = record.name
-        note = record.note ?? ""
-        country = record.country ?? ""
+        let fileName = UUID().uuidString + ".jpg"
+        let imagesDir = docsDir.appendingPathComponent("images", isDirectory: true)
 
-        if let date = record.finishedOn { finishedOn = date }
+        do {
+            try FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
+            let fileURL = imagesDir.appendingPathComponent(fileName)
 
-        director = record.director ?? ""
-        filmReleaseDate = record.filmReleaseDate.map(String.init) ?? ""
-        tmdbId = record.tmdbId.map(String.init) ?? ""
-        posterPath = record.posterPath ?? ""
-        creator = record.creator ?? ""
-        season = record.season.map(String.init) ?? ""
-        episode = record.episode.map(String.init) ?? ""
-        author = record.author ?? ""
-        publicationDate = record.publicationDate.map(String.init) ?? ""
-        translator = record.translator ?? ""
-        artist = record.artist ?? ""
-        musicReleaseDate = record.musicReleaseDate.map(String.init) ?? ""
+            // Compress to JPEG
+            if let uiImage = UIImage(data: data),
+               let jpegData = uiImage.jpegData(compressionQuality: 0.85) {
+                try jpegData.write(to: fileURL)
+                return "images/\(fileName)"
+            }
+        } catch {
+            print("Failed to save image: \(error)")
+        }
+
+        return nil
     }
 
-    private func formattedDateForField(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "dd.MM.yyyy"
-        return formatter.string(from: date)
-    }
+    // MARK: - Populate Initial State
 
-    private func nilIfEmpty(_ string: String) -> String? {
-        let trimmed = string.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? nil : trimmed
+    private func populateInitialState() {
+        if let record = existingRecord {
+            // Editing or re-logging — populate from existing record
+            recordType = isRelogging ? initialRecordType : record.recordType
+            selectedCategory = record.category
+            name = record.name
+            note = isRelogging ? "" : (record.note ?? "")
+
+            if !isRelogging, let date = record.finishedOn {
+                finishedOn = date
+                hasSetDate = true
+            }
+
+            // Populate dynamic field values
+            for fieldValue in record.sortedFieldValues {
+                guard let definition = fieldValue.fieldDefinition else { continue }
+                let id = definition.persistentModelID
+
+                switch definition.fieldType {
+                case .text:
+                    textValues[id] = fieldValue.textValue ?? ""
+                case .number:
+                    if let num = fieldValue.numberValue {
+                        textValues[id] = num.truncatingRemainder(dividingBy: 1) == 0
+                            ? String(Int(num))
+                            : String(num)
+                    }
+                case .date:
+                    dateValues[id] = fieldValue.dateValue
+                case .image:
+                    // Load image data from disk if path exists
+                    if let path = fieldValue.imagePath,
+                       let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                        let fileURL = docsDir.appendingPathComponent(path)
+                        imageDataValues[id] = try? Data(contentsOf: fileURL)
+                    }
+                }
+            }
+        } else {
+            // New record — set initial category
+            selectedCategory = initialCategory ?? enabledCategories.first
+
+            if initialRecordType == .logged {
+                hasSetDate = true
+            }
+        }
     }
 }
 
 // MARK: - Form Field Component
 
 /// A labeled form field matching the Figma design.
-private struct FormField<Content: View>: View {
+struct FormField<Content: View>: View {
     let label: String
     var isRequired: Bool = false
     var isDark: Bool = false
@@ -480,5 +526,5 @@ private struct FormField<Content: View>: View {
 
 #Preview {
     RecordFormView()
-        .modelContainer(for: Record.self, inMemory: true)
+        .modelContainer(for: [Category.self, FieldDefinition.self, FieldValue.self, Record.self], inMemory: true)
 }

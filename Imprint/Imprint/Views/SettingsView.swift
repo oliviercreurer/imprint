@@ -1,15 +1,18 @@
 import SwiftUI
+import SwiftData
 
 struct SettingsView: View {
 
-    @AppStorage("disabledMediaTypes") private var disabledMediaTypesRaw = ""
     @AppStorage("appearanceMode") private var appearanceMode = "light"
 
-    private var enabledTypes: [MediaType] {
-        enabledMediaTypes(disabledRaw: disabledMediaTypesRaw)
-    }
+    @Query(sort: \Category.sortOrder)
+    private var allCategories: [Category]
 
+    private var enabledCount: Int { allCategories.filter(\.isEnabled).count }
     private var isDarkMode: Bool { appearanceMode == "dark" }
+
+    @State private var showingCategoryEditor = false
+    @State private var editingCategory: Category?
 
     var body: some View {
         ScrollView {
@@ -24,13 +27,13 @@ struct SettingsView: View {
                 appearanceSegmentedControl
                     .staggeredAppearance(index: 1)
 
-                // ── Enabled Media Types ────────────────────────
+                // ── Categories ────────────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Enabled Media Types")
+                    Text("Categories")
                         .font(ImprintFonts.platypiSemiBold(16))
                         .foregroundStyle(ImprintColors.paper)
 
-                    Text("All media types are enabled by default, but you can turn some off. If you've already added items for a type you wish to disable, we'll simply hide those entries instead of deleting them.")
+                    Text("Toggle categories on or off. Disabled categories are hidden but their records are preserved.")
                         .font(ImprintFonts.platypiLight(16))
                         .foregroundStyle(ImprintColors.accentBlueLight)
                         .fixedSize(horizontal: false, vertical: true)
@@ -39,10 +42,37 @@ struct SettingsView: View {
 
                 // ── Toggle rows ────────────────────────────────
                 VStack(spacing: 4) {
-                    ForEach(Array(MediaType.allCases.enumerated()), id: \.element.id) { offset, type in
-                        mediaTypeRow(type)
+                    ForEach(Array(allCategories.enumerated()), id: \.element.persistentModelID) { offset, category in
+                        categoryRow(category)
                             .staggeredAppearance(index: offset + 3)
                     }
+
+                    // Add category button
+                    Button {
+                        editingCategory = nil
+                        showingCategoryEditor = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(ImprintColors.accentBlueLight)
+                                .frame(width: 10, height: 10)
+
+                            Text("Add Category")
+                                .font(ImprintFonts.jetBrainsMedium(14))
+                                .foregroundStyle(ImprintColors.accentBlueLight)
+
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .strokeBorder(ImprintColors.accentBlueLight.opacity(0.3), lineWidth: 1, antialiased: true)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .staggeredAppearance(index: allCategories.count + 3)
                 }
             }
             .padding(.horizontal, 32)
@@ -50,6 +80,9 @@ struct SettingsView: View {
             .padding(.bottom, 220)
         }
         .scrollIndicators(.hidden)
+        .sheet(isPresented: $showingCategoryEditor) {
+            CategoryEditorView(existingCategory: editingCategory)
+        }
     }
 
     // MARK: - Appearance Segmented Control
@@ -101,34 +134,42 @@ struct SettingsView: View {
         )
     }
 
-    // MARK: - Media Type Row
+    // MARK: - Category Row
 
-    private func mediaTypeRow(_ type: MediaType) -> some View {
-        let isEnabled = enabledTypes.contains(type)
-        let isLastEnabled = isEnabled && enabledTypes.count == 1
+    private func categoryRow(_ category: Category) -> some View {
+        let isLastEnabled = category.isEnabled && enabledCount == 1
 
         return HStack(spacing: 12) {
             // Legend square
             RoundedRectangle(cornerRadius: 1)
-                .fill(type.subtleColor)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 1)
-                        .strokeBorder(type.subtleColor, lineWidth: 2)
-                )
+                .fill(ColorDerivation.subtleColor(from: category.colorHex))
                 .frame(width: 10, height: 10)
 
-            Text(type.settingsLabel)
-                .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(isEnabled ? ImprintColors.paper : ImprintColors.accentBlueLight)
+            // Category name — tap to edit
+            Button {
+                editingCategory = category
+                showingCategoryEditor = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(category.name)
+                        .font(ImprintFonts.jetBrainsMedium(14))
+                        .foregroundStyle(category.isEnabled ? ImprintColors.paper : ImprintColors.accentBlueLight)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundStyle(ImprintColors.accentBlueLight.opacity(0.5))
+                }
+            }
+            .buttonStyle(.plain)
 
             Spacer()
 
             ImprintToggle(isOn: Binding(
-                get: { isEnabled },
+                get: { category.isEnabled },
                 set: { newValue in
                     guard !isLastEnabled else { return }
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        disabledMediaTypesRaw = toggleMediaType(type, disabledRaw: disabledMediaTypesRaw)
+                        category.isEnabled = newValue
                     }
                 }
             ))

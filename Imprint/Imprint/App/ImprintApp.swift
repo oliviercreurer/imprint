@@ -7,6 +7,11 @@ struct ImprintApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: Record.self)
+        .modelContainer(for: [
+            Category.self,
+            FieldDefinition.self,
+            FieldValue.self,
+            Record.self,
+        ])
     }
 }

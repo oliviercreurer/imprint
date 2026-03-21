@@ -7,31 +7,31 @@ import SwiftData
 struct RecordListView: View {
 
     let recordType: RecordType
-    let mediaFilter: MediaType?
+    let categoryFilter: Category?
     let searchText: String
-    let enabledMediaTypes: [MediaType]
     let isDark: Bool
     let allExpanded: Bool
     let expandTrigger: Int
     let onSelectRecord: (Record) -> Void
 
     @Query private var allRecords: [Record]
+    @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
+    private var enabledCategories: [Category]
+
     @Environment(\.modelContext) private var modelContext
 
     init(
         recordType: RecordType,
-        mediaFilter: MediaType?,
+        categoryFilter: Category?,
         searchText: String,
-        enabledMediaTypes: [MediaType] = MediaType.allCases.map { $0 },
         isDark: Bool = false,
         allExpanded: Bool = true,
         expandTrigger: Int = 0,
         onSelectRecord: @escaping (Record) -> Void
     ) {
         self.recordType = recordType
-        self.mediaFilter = mediaFilter
+        self.categoryFilter = categoryFilter
         self.searchText = searchText
-        self.enabledMediaTypes = enabledMediaTypes
         self.isDark = isDark
         self.allExpanded = allExpanded
         self.expandTrigger = expandTrigger
@@ -47,22 +47,24 @@ struct RecordListView: View {
         )
     }
 
-    /// Records after applying media type filter, enabled types, and search text.
+    /// Records after applying category filter, enabled categories, and search text.
     private var filteredRecords: [Record] {
-        // Exclude disabled media types
-        let enabledRaw = Set(enabledMediaTypes.map(\.rawValue))
-        var results = allRecords.filter { enabledRaw.contains($0.mediaTypeRaw) }
+        let enabledIds = Set(enabledCategories.map(\.persistentModelID))
+        var results = allRecords.filter { record in
+            guard let cat = record.category else { return false }
+            return enabledIds.contains(cat.persistentModelID)
+        }
 
-        if let mediaFilter {
-            let filterRaw = mediaFilter.rawValue
-            results = results.filter { $0.mediaTypeRaw == filterRaw }
+        if let categoryFilter {
+            let filterId = categoryFilter.persistentModelID
+            results = results.filter { $0.category?.persistentModelID == filterId }
         }
 
         if !searchText.isEmpty {
             let query = searchText.lowercased()
             results = results.filter { record in
                 record.name.lowercased().contains(query)
-                || (record.creatorLabel?.lowercased().contains(query) ?? false)
+                || (record.firstTextFieldValue?.lowercased().contains(query) ?? false)
                 || (record.note?.lowercased().contains(query) ?? false)
             }
         }
@@ -92,7 +94,7 @@ struct RecordListView: View {
                 ForEach(groups) { group in
                     MonthSectionView(
                         group: group,
-                        showBarChart: mediaFilter == nil,
+                        showBarChart: categoryFilter == nil,
                         searchText: searchText,
                         allExpanded: allExpanded,
                         expandTrigger: expandTrigger,
@@ -142,7 +144,7 @@ struct RecordListView: View {
                 .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             Text(recordType == .logged
-                ? "Tap + to log something you've watched, read, or listened to."
+                ? "Tap + to log something you've done."
                 : "Tap + to save something for later.")
                 .font(ImprintFonts.jetBrainsRegular(14))
                 .foregroundStyle(ImprintColors.secondaryText(isDark))

@@ -1,20 +1,23 @@
 import SwiftUI
+import SwiftData
 
-/// A horizontal row of filter chips for selecting a media type.
-/// Matches the Figma design: small rounded-rect chips with media-type colors.
+/// A horizontal row of filter chips driven by user-defined categories.
+/// Renamed conceptually from MediaFilterBar but keeps the file name
+/// for minimal project-file churn. Matches the Figma design.
 struct MediaFilterBar: View {
 
-    @Binding var selection: MediaType?
+    @Binding var selection: Category?
 
     /// Whether to use dark-mode styling (for Queue view).
     var isDark: Bool = false
 
-    @Environment(\.enabledMediaTypes) private var enabledTypes
+    @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
+    private var enabledCategories: [Category]
 
     var body: some View {
         HStack(spacing: 8) {
-            // "All" chip — hidden when only one type is enabled
-            if enabledTypes.count > 1 {
+            // "All" chip — hidden when only one category is enabled
+            if enabledCategories.count > 1 {
                 FilterChip(
                     label: "All",
                     isSelected: selection == nil,
@@ -30,18 +33,24 @@ struct MediaFilterBar: View {
                 }
             }
 
-            ForEach(enabledTypes) { type in
+            ForEach(enabledCategories) { category in
+                let isSelected = selection?.persistentModelID == category.persistentModelID
+                let boldColor = ColorDerivation.boldColor(from: category.colorHex)
+                let subtleColor = ColorDerivation.subtleColor(from: category.colorHex)
+                let darkSubtleColor = ColorDerivation.darkSubtleColor(from: category.colorHex)
+                let darkBoldColor = ColorDerivation.darkBoldColor(from: category.colorHex)
+
                 FilterChip(
-                    label: type.label,
-                    isSelected: selection == type,
-                    selectedBg: isDark ? type.darkSubtleColor : type.subtleColor,
+                    label: category.name,
+                    isSelected: isSelected,
+                    selectedBg: isDark ? darkSubtleColor : subtleColor,
                     selectedText: isDark ? ImprintColors.paper : .white,
                     unselectedBg: isDark ? ImprintColors.primary : ImprintColors.paper,
-                    unselectedBorder: isDark ? type.darkSubtlerColor : type.subtlerColor,
-                    unselectedText: isDark ? type.darkBoldColor : type.boldColor
+                    unselectedBorder: isDark ? darkBoldColor : boldColor,
+                    unselectedText: isDark ? darkBoldColor : boldColor
                 ) {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        selection = (selection == type) ? nil : type
+                        selection = isSelected ? nil : category
                     }
                 }
             }
@@ -80,15 +89,5 @@ private struct FilterChip: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
-    }
-}
-
-#Preview {
-    @Previewable @State var selection: MediaType? = nil
-    VStack {
-        MediaFilterBar(selection: $selection)
-        MediaFilterBar(selection: $selection, isDark: true)
-            .padding()
-            .background(ImprintColors.primary)
     }
 }

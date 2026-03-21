@@ -12,55 +12,10 @@ enum ImprintColors {
     static let secondary   = Color(hex: 0x9F9D96)  // base/bold – dates, month headers
     static let primary     = Color(hex: 0x100F0F)  // base/boldest – primary text
 
-    // Film
-    static let filmSubtle   = Color(hex: 0x5ABDAC)
-    static let filmSubtler  = Color(hex: 0x87D3C3)
-    static let filmSubtlest = Color(hex: 0xDDF1E4)
-    static let filmBold     = Color(hex: 0x24837B)
-
-    // Book
-    static let bookSubtle   = Color(hex: 0xDFB431)
-    static let bookSubtler  = Color(hex: 0xECCB60)
-    static let bookBold     = Color(hex: 0xAD8301)
-
-    // TV
-    static let tvSubtle   = Color(hex: 0xA699D0)
-    static let tvSubtler  = Color(hex: 0xC4B9E0)
-    static let tvBold     = Color(hex: 0x5E409D)
-
-    // Music
-    static let musicSubtle   = Color(hex: 0xE8705F)
-    static let musicSubtler  = Color(hex: 0xF89A8A)
-    static let musicBold     = Color(hex: 0xAF3029)
-
-    // Dark mode base palette (from Figma dark/queue mode)
+    // Dark mode base palette
     static let darkSecondary    = Color(hex: 0xB7B5AC)  // dark base/bold – dates, secondary text
     static let darkSurfaceBg    = Color(hex: 0x282726)  // dark base/subtler – search bg
     static let darkSurfaceBorder = Color(hex: 0x575653) // dark base/subtle – borders, dividers
-
-    // Dark mode /subtlest – queue legend fills
-    static let filmQueueFill  = Color(hex: 0x122F2C)
-    static let bookQueueFill  = Color(hex: 0x3A2D04)   // was 0x2E2513, corrected from Figma
-    static let tvQueueFill    = Color(hex: 0x1E1637)
-    static let musicQueueFill = Color(hex: 0x3E1715)   // was 0x2E1210, corrected from Figma
-
-    // Dark mode /subtle – selected chip fill, legend stroke
-    static let filmDarkSubtle  = Color(hex: 0x2F968D)
-    static let bookDarkSubtle  = Color(hex: 0xBE9207)
-    static let tvDarkSubtle    = Color(hex: 0x735EB5)
-    static let musicDarkSubtle = Color(hex: 0xC03E35)
-
-    // Dark mode /subtler – chip borders (unselected)
-    static let filmDarkSubtler  = Color(hex: 0x1C6C66)
-    static let bookDarkSubtler  = Color(hex: 0x8E6B01)
-    static let tvDarkSubtler    = Color(hex: 0x4F3685)
-    static let musicDarkSubtler = Color(hex: 0x942822)
-
-    // Dark mode /bold – chip text (vivid tokens from Figma dark mode)
-    static let filmDarkBold  = Color(hex: 0x5ABDAC)
-    static let bookDarkBold  = Color(hex: 0xDFB431)
-    static let tvDarkBold    = Color(hex: 0xA699D0)
-    static let musicDarkBold = Color(hex: 0xE8705F)
 
     // Accent blue family
     static let accentBlue        = Color(hex: 0x4385BE)  // accent/blue/subtle
@@ -198,90 +153,6 @@ enum ImprintFonts {
     static var noteBody: Font { jetBrainsRegular(14) }
 }
 
-// MARK: - MediaType Color Extensions
-
-extension MediaType {
-
-    /// The primary fill color for legend squares and bar chart segments.
-    var subtleColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmSubtle
-        case .book:  ImprintColors.bookSubtle
-        case .tv:    ImprintColors.tvSubtle
-        case .music: ImprintColors.musicSubtle
-        }
-    }
-
-    /// The border / chip outline color.
-    var subtlerColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmSubtler
-        case .book:  ImprintColors.bookSubtler
-        case .tv:    ImprintColors.tvSubtler
-        case .music: ImprintColors.musicSubtler
-        }
-    }
-
-    /// The lightest tint (legend background when unfilled).
-    var subtlestColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmSubtlest
-        case .book:  ImprintColors.bookSubtle.opacity(0.25)
-        case .tv:    ImprintColors.tvSubtle.opacity(0.25)
-        case .music: ImprintColors.musicSubtle.opacity(0.25)
-        }
-    }
-
-    /// Dark fill for queue legend squares.
-    var queueLegendFill: Color {
-        switch self {
-        case .film:  ImprintColors.filmQueueFill
-        case .book:  ImprintColors.bookQueueFill
-        case .tv:    ImprintColors.tvQueueFill
-        case .music: ImprintColors.musicQueueFill
-        }
-    }
-
-    /// The strong text color used on chip labels.
-    var boldColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmBold
-        case .book:  ImprintColors.bookBold
-        case .tv:    ImprintColors.tvBold
-        case .music: ImprintColors.musicBold
-        }
-    }
-
-    /// Dark mode subtle color – selected chip fill, legend stroke.
-    var darkSubtleColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmDarkSubtle
-        case .book:  ImprintColors.bookDarkSubtle
-        case .tv:    ImprintColors.tvDarkSubtle
-        case .music: ImprintColors.musicDarkSubtle
-        }
-    }
-
-    /// Dark mode chip border color.
-    var darkSubtlerColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmDarkSubtler
-        case .book:  ImprintColors.bookDarkSubtler
-        case .tv:    ImprintColors.tvDarkSubtler
-        case .music: ImprintColors.musicDarkSubtler
-        }
-    }
-
-    /// Dark mode chip text color.
-    var darkBoldColor: Color {
-        switch self {
-        case .film:  ImprintColors.filmDarkBold
-        case .book:  ImprintColors.bookDarkBold
-        case .tv:    ImprintColors.tvDarkBold
-        case .music: ImprintColors.musicDarkBold
-        }
-    }
-}
 
 // MARK: - Imprint Logo Shape
 

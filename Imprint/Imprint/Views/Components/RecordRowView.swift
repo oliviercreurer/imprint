@@ -14,6 +14,14 @@ struct RecordRowView: View {
         return false
     }
 
+    /// The category color for this record, with a fallback gray.
+    private var categoryColor: Color {
+        guard let hex = record.category?.colorHex else {
+            return ImprintColors.secondary
+        }
+        return ColorDerivation.boldColor(from: hex)
+    }
+
     var body: some View {
         HStack(spacing: 24) {
             HStack(spacing: 12) {
@@ -21,16 +29,29 @@ struct RecordRowView: View {
                 if isDark {
                     // Queue: bordered square with dark subtle fill
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(record.mediaType.queueLegendFill)
+                        .fill(
+                            record.category != nil
+                                ? ColorDerivation.darkSubtleColor(from: record.category!.colorHex)
+                                : ImprintColors.darkSurfaceBg
+                        )
                         .frame(width: 10, height: 10)
                         .overlay(
                             RoundedRectangle(cornerRadius: 2)
-                                .strokeBorder(record.mediaType.darkSubtleColor, lineWidth: 2)
+                                .strokeBorder(
+                                    record.category != nil
+                                        ? ColorDerivation.darkBoldColor(from: record.category!.colorHex)
+                                        : ImprintColors.darkSurfaceBorder,
+                                    lineWidth: 2
+                                )
                         )
                 } else {
                     // Log: solid filled square
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(record.mediaType.subtleColor)
+                        .fill(
+                            record.category != nil
+                                ? ColorDerivation.subtleColor(from: record.category!.colorHex)
+                                : ImprintColors.secondary
+                        )
                         .frame(width: 10, height: 10)
                 }
 

@@ -22,7 +22,7 @@ struct MonthSectionView: View {
             // Month header
             monthHeader
 
-            // Proportional bar chart (always visible, hidden when filtering by media type)
+            // Proportional bar chart (always visible, hidden when filtering by category)
             if showBarChart {
                 barChart
             }
@@ -95,32 +95,26 @@ struct MonthSectionView: View {
 
     private var barChart: some View {
         GeometryReader { geo in
+            let counts = group.categoryCounts
             let total = group.totalCount
             let availableWidth = geo.size.width
             let gap: CGFloat = 2
-            let gapCount = CGFloat(max(group.mediaCounts.count - 1, 0))
+            let gapCount = CGFloat(max(counts.count - 1, 0))
             let usable = availableWidth - (gap * gapCount)
 
             HStack(spacing: gap) {
-                ForEach(Array(group.mediaCounts.enumerated()), id: \.offset) { index, item in
+                ForEach(Array(counts.enumerated()), id: \.offset) { _, item in
                     let proportion = CGFloat(item.count) / CGFloat(total)
                     let barWidth = usable * proportion
 
-                    RoundedRectangle(cornerRadius: cornerRadius(for: index))
-                        .fill(item.type.subtleColor)
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(ColorDerivation.subtleColor(from: item.colorHex))
                         .frame(width: max(barWidth, 4), height: 10)
                 }
             }
             .frame(maxHeight: .infinity, alignment: .center)
         }
         .frame(height: 18)
-    }
-
-    /// First bar gets 4px left radius, last bar gets 4px right radius, middle bars get 2px.
-    private func cornerRadius(for index: Int) -> CGFloat {
-        // All bars use 2px; the first/last get slightly larger end caps
-        // Using a uniform 3px for simplicity, matching the Figma 4px/2px approach
-        return 3
     }
 }
 

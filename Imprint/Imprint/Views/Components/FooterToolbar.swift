@@ -1,14 +1,17 @@
 import SwiftUI
+import SwiftData
 
 /// The custom footer overlay with gradient fade and + button.
-/// Tapping the + button reveals an animated media-type picker menu.
+/// Tapping the + button reveals an animated category picker menu.
 struct FooterToolbar: View {
 
     let isDark: Bool
-    let onAdd: (MediaType) -> Void
+    let onAdd: (Category) -> Void
 
     @State private var showingMenu = false
-    @Environment(\.enabledMediaTypes) private var enabledTypes
+
+    @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
+    private var enabledCategories: [Category]
 
     private var bgColor: Color { isDark ? ImprintColors.primary : ImprintColors.paper }
 
@@ -39,7 +42,7 @@ struct FooterToolbar: View {
                     ZStack(alignment: .bottomTrailing) {
                         // Menu anchored above the button
                         if showingMenu {
-                            mediaTypeMenu
+                            categoryMenu
                                 .offset(y: -58)
                                 .transition(
                                     .asymmetric(
@@ -119,23 +122,23 @@ struct FooterToolbar: View {
         .ignoresSafeArea(edges: .bottom)
     }
 
-    // MARK: - Media Type Menu
+    // MARK: - Category Menu
 
-    private var mediaTypeMenu: some View {
+    private var categoryMenu: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Add...")
                 .font(ImprintFonts.jetBrainsMedium(14))
                 .foregroundStyle(ImprintColors.searchBorder)
 
-            ForEach(enabledTypes) { type in
+            ForEach(enabledCategories) { category in
                 Button {
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                         showingMenu = false
                     }
-                    onAdd(type)
+                    onAdd(category)
                 } label: {
                     HStack {
-                        Text(type.menuLabel)
+                        Text(category.name)
                             .font(ImprintFonts.jetBrainsMedium(14))
                             .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
 
@@ -143,11 +146,7 @@ struct FooterToolbar: View {
 
                         // Colored legend square (filled)
                         RoundedRectangle(cornerRadius: 1)
-                            .fill(type.subtleColor)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 1)
-                                    .strokeBorder(type.subtleColor, lineWidth: 2)
-                            )
+                            .fill(ColorDerivation.subtleColor(from: category.colorHex))
                             .frame(width: 10, height: 10)
                     }
                     .frame(height: 18)

@@ -17,21 +17,21 @@ struct ContentView: View {
     /// All records, used to derive the flat ordered list for the detail pager.
     @Query(sort: \Record.createdAt, order: .reverse) private var allRecords: [Record]
 
-    @AppStorage("disabledMediaTypes") private var disabledMediaTypesRaw = ""
+    /// All enabled categories for filtering.
+    @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
+    private var enabledCategories: [Category]
+
     @AppStorage("appearanceMode") private var appearanceMode = "light"
 
     @State private var selectedTab: RecordType = .logged
-    @State private var mediaFilter: MediaType?
+    @State private var categoryFilter: Category?
     @State private var searchText = ""
     /// Debounced copy of searchText — drives filtering after a short delay.
     @State private var debouncedSearchText = ""
     /// Task handle for the debounce timer so we can cancel on each keystroke.
     @State private var debounceTask: Task<Void, Never>?
     @State private var showingNewRecord = false
-    @State private var showingAddFilm = false
-    @State private var showingAddBook = false
-    @State private var showingAddTV = false
-    @State private var newRecordMediaType: MediaType = .film
+    @State private var newRecordCategory: Category?
     @State private var selectedRecord: Record?
 
     @State private var showingSettings = false
@@ -51,25 +51,25 @@ struct ContentView: View {
     private var isQueue: Bool { selectedTab == .queued }
     private var isDark: Bool { appearanceMode == "dark" }
 
-    /// Media types the user has enabled in Settings.
-    private var enabledTypes: [MediaType] {
-        enabledMediaTypes(disabledRaw: disabledMediaTypesRaw)
-    }
-
     /// Flat ordered list of records for the current tab, matching RecordListView's filters.
     private var currentTabRecords: [Record] {
-        let disabled = disabledMediaTypeSet(from: disabledMediaTypesRaw)
-        var results = allRecords.filter { $0.recordType == selectedTab && !disabled.contains($0.mediaTypeRaw) }
+        let enabledIds = Set(enabledCategories.map(\.persistentModelID))
+        var results = allRecords.filter { record in
+            guard record.recordType == selectedTab else { return false }
+            guard let cat = record.category else { return false }
+            return enabledIds.contains(cat.persistentModelID)
+        }
 
-        if let mediaFilter {
-            results = results.filter { $0.mediaType == mediaFilter }
+        if let categoryFilter {
+            let filterId = categoryFilter.persistentModelID
+            results = results.filter { $0.category?.persistentModelID == filterId }
         }
 
         if !debouncedSearchText.isEmpty {
             let query = debouncedSearchText.lowercased()
             results = results.filter { record in
                 record.name.lowercased().contains(query)
-                || (record.creatorLabel?.lowercased().contains(query) ?? false)
+                || (record.firstTextFieldValue?.lowercased().contains(query) ?? false)
                 || (record.note?.lowercased().contains(query) ?? false)
             }
         }
@@ -94,9 +94,8 @@ struct ContentView: View {
                         ForEach(RecordType.allPages) { page in
                             RecordListView(
                                 recordType: page,
-                                mediaFilter: mediaFilter,
+                                categoryFilter: categoryFilter,
                                 searchText: debouncedSearchText,
-                                enabledMediaTypes: enabledTypes,
                                 isDark: isDark,
                                 allExpanded: allSectionsExpanded,
                                 expandTrigger: expandCollapseTrigger,
@@ -136,17 +135,9 @@ struct ContentView: View {
             // Footer
             FooterToolbar(
                 isDark: isDark,
-                onAdd: { mediaType in
-                    if mediaType == .film {
-                        showingAddFilm = true
-                    } else if mediaType == .tv {
-                        showingAddTV = true
-                    } else if mediaType == .book {
-                        showingAddBook = true
-                    } else {
-                        newRecordMediaType = mediaType
-                        showingNewRecord = true
-                    }
+                onAdd: { category in
+                    newRecordCategory = category
+                    showingNewRecord = true
                 }
             )
             .allowsHitTesting(!showingSettings)
@@ -203,7 +194,6 @@ struct ContentView: View {
         }
         .animation(.easeInOut(duration: 0.35), value: selectedTab)
         .animation(.easeInOut(duration: 0.25), value: showingSettings)
-        .environment(\.enabledMediaTypes, enabledTypes)
         .onChange(of: searchText) { _, newValue in
             debounceTask?.cancel()
             if newValue.isEmpty {
@@ -222,23 +212,11 @@ struct ContentView: View {
             debouncedSearchText = ""
             debounceTask?.cancel()
         }
-        .onChange(of: disabledMediaTypesRaw) { _, _ in
-            // Clear the active filter if its type was just disabled
-            if let mediaFilter, !enabledTypes.contains(mediaFilter) {
-                self.mediaFilter = nil
-            }
-        }
-        .sheet(isPresented: $showingAddFilm) {
-            AddFilmView(initialRecordType: selectedTab)
-        }
-        .sheet(isPresented: $showingAddTV) {
-            AddTVView(initialRecordType: selectedTab)
-        }
-        .sheet(isPresented: $showingAddBook) {
-            AddBookView(initialRecordType: selectedTab)
-        }
         .sheet(isPresented: $showingNewRecord) {
-            RecordFormView(initialRecordType: selectedTab, initialMediaType: newRecordMediaType)
+            RecordFormView(
+                initialRecordType: selectedTab,
+                initialCategory: newRecordCategory
+            )
         }
         .fullScreenCover(item: $selectedRecord, onDismiss: {
             if let name = pendingToastName {
@@ -251,6 +229,10 @@ struct ContentView: View {
             RecordDetailPager(records: records, initialIndex: idx) { name in
                 pendingToastName = name
             }
+        }
+        .onAppear {
+            // Seed default categories on first launch
+            CategorySeeder.seedIfNeeded(context: modelContext)
         }
     }
 
@@ -280,7 +262,7 @@ struct ContentView: View {
             // Spacer matching the title bar height + 12pt breathing room below title
             Color.clear.frame(height: 46)
 
-            MediaFilterBar(selection: $mediaFilter, isDark: isDark)
+            MediaFilterBar(selection: $categoryFilter, isDark: isDark)
 
             // Search bar
             HStack(spacing: 8) {
@@ -378,5 +360,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Record.self, inMemory: true)
+        .modelContainer(for: [Category.self, FieldDefinition.self, FieldValue.self, Record.self], inMemory: true)
 }
