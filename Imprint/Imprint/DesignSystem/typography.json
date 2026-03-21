@@ -1,0 +1,128 @@
+{
+  "$schema": "imprint-design-tokens",
+  "$version": 1,
+  "lastSynced": null,
+  "note": "Scaffolded from existing ImprintFonts in Theme.swift. Will be overwritten on first Figma sync.",
+  "families": {
+    "platypi": {
+      "description": "Display / heading typeface",
+      "postScriptPrefix": "Platypi",
+      "weights": ["Light", "SemiBold", "ExtraBold"]
+    },
+    "jetbrains-mono": {
+      "description": "Monospaced body typeface",
+      "postScriptPrefix": "JetBrainsMono",
+      "weights": ["Regular", "Medium", "SemiBold", "Bold"]
+    }
+  },
+  "tokens": {
+    "heading/page-title": {
+      "family": "platypi",
+      "weight": "SemiBold",
+      "size": 32,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Main page titles",
+      "swiftName": "pageTitle"
+    },
+    "heading/modal-title": {
+      "family": "platypi",
+      "weight": "SemiBold",
+      "size": 20,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Modal sheet titles",
+      "swiftName": "modalTitle"
+    },
+    "heading/detail-title": {
+      "family": "platypi",
+      "weight": "SemiBold",
+      "size": 32,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Record detail view title",
+      "swiftName": "detailTitle"
+    },
+    "heading/detail-subtitle": {
+      "family": "platypi",
+      "weight": "SemiBold",
+      "size": 24,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Record detail view subtitle",
+      "swiftName": "detailSubtitle"
+    },
+    "body/filter-chip": {
+      "family": "jetbrains-mono",
+      "weight": "Medium",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Filter bar chip labels",
+      "swiftName": "filterChip"
+    },
+    "body/record-name": {
+      "family": "jetbrains-mono",
+      "weight": "SemiBold",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Record name in list rows",
+      "swiftName": "recordName"
+    },
+    "body/month-header": {
+      "family": "jetbrains-mono",
+      "weight": "Bold",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Month section headers",
+      "swiftName": "monthHeader"
+    },
+    "body/date-text": {
+      "family": "jetbrains-mono",
+      "weight": "SemiBold",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Date labels on records",
+      "swiftName": "dateText"
+    },
+    "body/form-label": {
+      "family": "jetbrains-mono",
+      "weight": "Medium",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Form field labels",
+      "swiftName": "formLabel"
+    },
+    "body/form-value": {
+      "family": "jetbrains-mono",
+      "weight": "Medium",
+      "size": 16,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Form field input text",
+      "swiftName": "formValue"
+    },
+    "body/search-placeholder": {
+      "family": "jetbrains-mono",
+      "weight": "Bold",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Search bar placeholder text",
+      "swiftName": "searchPlaceholder"
+    },
+    "body/note": {
+      "family": "jetbrains-mono",
+      "weight": "Regular",
+      "size": 14,
+      "lineHeight": null,
+      "letterSpacing": null,
+      "description": "Note/details body text",
+      "swiftName": "noteBody"
+    }
+  }
+}

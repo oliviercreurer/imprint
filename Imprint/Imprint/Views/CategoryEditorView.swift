@@ -18,7 +18,7 @@ struct CategoryEditorView: View {
     // MARK: - Form State
 
     @State private var name: String = ""
-    @State private var iconName: String = "folder"
+    @State private var iconName: String = "cinema-old"
     @State private var colorHex: String = "#3B82F6"
     @State private var selectedColor: Color = .blue
     @State private var fields: [EditableField] = []
@@ -36,17 +36,16 @@ struct CategoryEditorView: View {
         var isRequired: Bool
     }
 
-    // MARK: - Common SF Symbols for categories
+    @State private var iconSearchText: String = ""
 
-    private let iconOptions = [
-        "folder", "film", "tv", "book", "music.note",
-        "fork.knife", "cup.and.saucer", "cart",
-        "figure.walk", "mountain.2", "bicycle", "car",
-        "gamecontroller", "paintbrush", "camera",
-        "globe", "map", "pin", "heart", "star",
-        "briefcase", "graduationcap", "wrench",
-        "leaf", "flame", "drop", "snowflake",
-    ]
+    /// Filtered icon names based on the search query.
+    private var filteredIconNames: [String] {
+        if iconSearchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return IconoirCatalog.allNames
+        }
+        let query = iconSearchText.lowercased()
+        return IconoirCatalog.allNames.filter { $0.localizedCaseInsensitiveContains(query) }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -201,39 +200,62 @@ struct CategoryEditorView: View {
     // MARK: - Icon Grid
 
     private var iconGrid: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7),
-            spacing: 8
-        ) {
-            ForEach(iconOptions, id: \.self) { icon in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        iconName = icon
+        VStack(spacing: 8) {
+            // Search field
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12))
+                    .foregroundStyle(ImprintColors.secondaryText(isDark))
+                TextField("Search icons", text: $iconSearchText)
+                    .font(ImprintFonts.jetBrainsRegular(13))
+                    .foregroundStyle(ImprintColors.modalText(isDark))
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(ImprintColors.inputBg(isDark))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 1)
+            )
+
+            // Grid
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7),
+                spacing: 8
+            ) {
+                ForEach(filteredIconNames, id: \.self) { icon in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) {
+                            iconName = icon
+                        }
+                    } label: {
+                        IconoirCatalog.image(for: icon)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 18, height: 18)
+                            .foregroundStyle(
+                                iconName == icon
+                                    ? ImprintColors.ctaText(isDark)
+                                    : ImprintColors.secondaryText(isDark)
+                            )
+                            .frame(width: 40, height: 40)
+                            .background(
+                                iconName == icon
+                                    ? ImprintColors.ctaFill(isDark)
+                                    : ImprintColors.inputBg(isDark)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .strokeBorder(
+                                        iconName == icon ? Color.clear : ImprintColors.inputBorder(isDark),
+                                        lineWidth: 1
+                                    )
+                            )
                     }
-                } label: {
-                    Image(systemName: icon)
-                        .font(.system(size: 16))
-                        .foregroundStyle(
-                            iconName == icon
-                                ? ImprintColors.ctaText(isDark)
-                                : ImprintColors.secondaryText(isDark)
-                        )
-                        .frame(width: 40, height: 40)
-                        .background(
-                            iconName == icon
-                                ? ImprintColors.ctaFill(isDark)
-                                : ImprintColors.inputBg(isDark)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .strokeBorder(
-                                    iconName == icon ? Color.clear : ImprintColors.inputBorder(isDark),
-                                    lineWidth: 1
-                                )
-                        )
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
     }
@@ -247,8 +269,10 @@ struct CategoryEditorView: View {
                 .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             HStack(spacing: 6) {
-                Image(systemName: iconName)
-                    .font(.system(size: 12))
+                IconoirCatalog.image(for: iconName)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 12, height: 12)
                 Text(name.isEmpty ? "Category" : name)
                     .font(ImprintFonts.jetBrainsMedium(14))
             }

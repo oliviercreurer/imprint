@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		B3EEAA1E2F6F319000979D48 /* Iconoir in Frameworks */ = {isa = PBXBuildFile; productRef = B3EEAA1D2F6F319000979D48 /* Iconoir */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		B397840B2F5399E600BE4D02 /* Imprint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Imprint.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B3EEAA1E2F6F319000979D48 /* Iconoir in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Imprint;
 			packageProductDependencies = (
+				B3EEAA1D2F6F319000979D48 /* Iconoir */,
 			);
 			productName = Imprint;
 			productReference = B397840B2F5399E600BE4D02 /* Imprint.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = B39784022F5399E500BE4D02;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B3EEAA1C2F6F319000979D48 /* XCRemoteSwiftPackageReference "iconoir-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = B397840C2F5399E600BE4D02 /* Products */;
 			projectDirPath = "";
@@ -334,6 +343,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B3EEAA1C2F6F319000979D48 /* XCRemoteSwiftPackageReference "iconoir-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/iconoir-icons/iconoir-swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		B3EEAA1D2F6F319000979D48 /* Iconoir */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B3EEAA1C2F6F319000979D48 /* XCRemoteSwiftPackageReference "iconoir-swift" */;
+			productName = Iconoir;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = B39784032F5399E500BE4D02 /* Project object */;
 }

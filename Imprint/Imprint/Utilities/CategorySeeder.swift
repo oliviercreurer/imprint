@@ -37,7 +37,7 @@ enum CategorySeeder {
             (
                 Category(
                     name: "Film",
-                    iconName: "film",
+                    iconName: "cinema-old",
                     colorHex: "#E45E5C",
                     sortOrder: 0
                 ),
@@ -79,7 +79,7 @@ enum CategorySeeder {
             (
                 Category(
                     name: "Music",
-                    iconName: "music.note",
+                    iconName: "music-double-note",
                     colorHex: "#C78CDB",
                     sortOrder: 3
                 ),

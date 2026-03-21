@@ -1,0 +1,128 @@
+{
+  "$schema": "imprint-design-tokens",
+  "$version": 1,
+  "lastSynced": null,
+  "note": "Scaffolded from existing ImprintColors in Theme.swift. Will be overwritten on first Figma sync.",
+  "collections": {
+    "base": {
+      "description": "Core neutral palette",
+      "modes": ["light", "dark"],
+      "tokens": {
+        "base/paper": {
+          "description": "Main background (subtlest)",
+          "light": "#FFFCF0",
+          "dark": "#100F0F",
+          "swiftName": "paper"
+        },
+        "base/subtler": {
+          "description": "Search background, input fields",
+          "light": "#F2F0E5",
+          "dark": "#282726",
+          "swiftName": "searchBg"
+        },
+        "base/subtle": {
+          "description": "Borders, dividers",
+          "light": "#CECDC3",
+          "dark": "#575653",
+          "swiftName": "searchBorder"
+        },
+        "base/bold": {
+          "description": "Secondary text, dates, month headers",
+          "light": "#9F9D96",
+          "dark": "#B7B5AC",
+          "swiftName": "secondary"
+        },
+        "base/boldest": {
+          "description": "Primary text",
+          "light": "#100F0F",
+          "dark": "#FFFCF0",
+          "swiftName": "primary"
+        }
+      }
+    },
+    "accent": {
+      "description": "Accent color families",
+      "modes": ["light", "dark"],
+      "tokens": {
+        "accent/blue/subtle": {
+          "description": "Accent blue primary",
+          "light": "#4385BE",
+          "dark": "#4385BE",
+          "swiftName": "accentBlue"
+        },
+        "accent/blue/subtler": {
+          "description": "Accent blue light",
+          "light": "#92BFDB",
+          "dark": "#92BFDB",
+          "swiftName": "accentBlueLight"
+        },
+        "accent/blue/bold": {
+          "description": "Accent blue bold",
+          "light": "#205EA6",
+          "dark": "#205EA6",
+          "swiftName": "accentBlueBold"
+        },
+        "accent/blue/bolder": {
+          "description": "Accent blue bolder",
+          "light": "#163B66",
+          "dark": "#163B66",
+          "swiftName": "accentBlueBolder"
+        },
+        "accent/blue/subtlest": {
+          "description": "Accent blue subtlest",
+          "light": "#E1ECEB",
+          "dark": "#E1ECEB",
+          "swiftName": "accentBlueSubtlest"
+        }
+      }
+    },
+    "semantic": {
+      "description": "Semantic / functional colors",
+      "modes": ["light", "dark"],
+      "tokens": {
+        "semantic/settings-row": {
+          "description": "Settings row background",
+          "light": "#3171B2",
+          "dark": "#3171B2",
+          "swiftName": "settingsRowBg"
+        },
+        "semantic/action-log-again": {
+          "description": "Log again button",
+          "light": "#2F968D",
+          "dark": "#2F968D",
+          "swiftName": "actionLogAgain"
+        },
+        "semantic/action-edit": {
+          "description": "Edit button",
+          "light": "#DFB431",
+          "dark": "#DFB431",
+          "swiftName": "actionEdit"
+        },
+        "semantic/form-border": {
+          "description": "Form field border",
+          "light": "#000000",
+          "dark": "#000000",
+          "swiftName": "formBorder"
+        },
+        "semantic/chip-inactive": {
+          "description": "Inactive chip fill",
+          "light": "#E6E6E6",
+          "dark": "#3A3938",
+          "swiftName": "chipInactive"
+        },
+        "semantic/chip-text": {
+          "description": "Inactive chip text",
+          "light": "#7E7E7E",
+          "dark": "#9F9D96",
+          "swiftName": "chipText"
+        },
+        "semantic/required": {
+          "description": "Required field indicator",
+          "light": "#E74E4E",
+          "dark": "#E74E4E",
+          "swiftName": "required"
+        }
+      }
+    }
+  }
+}
