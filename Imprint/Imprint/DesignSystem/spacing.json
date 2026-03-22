@@ -1,60 +1,56 @@
 {
   "$schema": "imprint-design-tokens",
   "$version": 1,
-  "lastSynced": null,
-  "note": "Scaffolded from common values observed in views. Will be overwritten on first Figma sync.",
-  "tokens": {
-    "spacing/xs": {
-      "value": 4,
-      "description": "Extra small (chip vertical padding)"
-    },
-    "spacing/sm": {
-      "value": 8,
-      "description": "Small (icon grid gaps, chip horizontal padding)"
-    },
-    "spacing/md": {
-      "value": 16,
-      "description": "Medium (section spacing, field row padding)"
-    },
-    "spacing/lg": {
-      "value": 20,
-      "description": "Large (form section gaps)"
-    },
-    "spacing/xl": {
-      "value": 32,
-      "description": "Extra large (page horizontal padding)"
-    },
-    "spacing/2xl": {
-      "value": 40,
-      "description": "Bottom safe area padding"
-    },
-    "spacing/3xl": {
-      "value": 48,
-      "description": "Modal top padding"
-    },
-    "radius/xs": {
-      "value": 2,
-      "description": "Legend squares"
-    },
-    "radius/sm": {
-      "value": 4,
-      "description": "Chips, tags"
-    },
-    "radius/md": {
-      "value": 6,
-      "description": "Filter chips"
-    },
-    "radius/lg": {
-      "value": 8,
-      "description": "Cards, inputs, icon grid items"
-    },
-    "radius/xl": {
-      "value": 12,
-      "description": "Menus, popovers"
-    },
-    "radius/2xl": {
-      "value": 42,
-      "description": "Sheet presentation corner radius"
-    }
+  "lastSynced": "2026-03-21T21:03:00Z",
+  "space": {
+    "0": 0,
+    "25": 2,
+    "50": 4,
+    "75": 6,
+    "100": 8,
+    "200": 12,
+    "300": 16,
+    "400": 20,
+    "500": 24,
+    "600": 32,
+    "700": 40,
+    "800": 48,
+    "900": 64,
+    "1000": 80
+  },
+  "radius": {
+    "square": 0,
+    "25": 2,
+    "50": 4,
+    "75": 6,
+    "100": 8,
+    "200": 12,
+    "300": 16,
+    "400": 20,
+    "500": 24,
+    "600": 32,
+    "700": 40,
+    "800": 48,
+    "900": 64,
+    "round": 1000
+  },
+  "size": {
+    "0": 0,
+    "25": 2,
+    "50": 4,
+    "75": 6,
+    "100": 8,
+    "200": 12,
+    "300": 16,
+    "400": 20,
+    "500": 24,
+    "600": 32,
+    "700": 40,
+    "800": 48,
+    "900": 64,
+    "1000": 1000
+  },
+  "border": {
+    "default": 2
   }
 }

@@ -230,9 +230,7 @@ struct CategoryEditorView: View {
                             iconName = icon
                         }
                     } label: {
-                        IconoirCatalog.image(for: icon)
-                            .resizable()
-                            .scaledToFit()
+                        IconoirCatalog.icon(for: icon)
                             .frame(width: 18, height: 18)
                             .foregroundStyle(
                                 iconName == icon
@@ -269,9 +267,7 @@ struct CategoryEditorView: View {
                 .foregroundStyle(ImprintColors.secondaryText(isDark))
 
             HStack(spacing: 6) {
-                IconoirCatalog.image(for: iconName)
-                    .resizable()
-                    .scaledToFit()
+                IconoirCatalog.icon(for: iconName)
                     .frame(width: 12, height: 12)
                 Text(name.isEmpty ? "Category" : name)
                     .font(ImprintFonts.jetBrainsMedium(14))

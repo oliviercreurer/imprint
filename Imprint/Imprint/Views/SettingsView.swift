@@ -20,7 +20,7 @@ struct SettingsView: View {
 
                 // ── Appearance ────────────────────────────────
                 Text("Appearance")
-                    .font(ImprintFonts.platypiSemiBold(16))
+                    .font(ImprintFonts.outfitSemiBold(16))
                     .foregroundStyle(ImprintColors.paper)
                     .staggeredAppearance(index: 0)
 
@@ -30,11 +30,11 @@ struct SettingsView: View {
                 // ── Categories ────────────────────────────────
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Categories")
-                        .font(ImprintFonts.platypiSemiBold(16))
+                        .font(ImprintFonts.outfitSemiBold(16))
                         .foregroundStyle(ImprintColors.paper)
 
                     Text("Toggle categories on or off. Disabled categories are hidden but their records are preserved.")
-                        .font(ImprintFonts.platypiLight(16))
+                        .font(ImprintFonts.outfitRegular(16))
                         .foregroundStyle(ImprintColors.accentBlueLight)
                         .fixedSize(horizontal: false, vertical: true)
                 }

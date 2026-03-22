@@ -1,93 +1,65 @@
 import SwiftUI
 import SwiftData
 
-/// A horizontal row of filter chips driven by user-defined categories.
-/// Renamed conceptually from MediaFilterBar but keeps the file name
-/// for minimal project-file churn. Matches the Figma design.
+/// A horizontal row of icon-based filter buttons driven by user-defined categories.
+/// Matches the Figma filter bar: "ALL" text chip + per-category icon chips,
+/// with a trailing gradient fade when the row overflows.
 struct MediaFilterBar: View {
 
     @Binding var selection: Category?
-
-    /// Whether to use dark-mode styling (for Queue view).
     var isDark: Bool = false
 
     @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
     private var enabledCategories: [Category]
 
     var body: some View {
-        HStack(spacing: 8) {
-            // "All" chip — hidden when only one category is enabled
-            if enabledCategories.count > 1 {
-                FilterChip(
-                    label: "All",
-                    isSelected: selection == nil,
-                    selectedBg: isDark ? ImprintColors.paper : ImprintColors.primary,
-                    selectedText: isDark ? ImprintColors.primary : ImprintColors.paper,
-                    unselectedBg: isDark ? ImprintColors.primary : ImprintColors.paper,
-                    unselectedBorder: isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.secondary,
-                    unselectedText: isDark ? ImprintColors.paper : ImprintColors.primary
-                ) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selection = nil
+        ZStack(alignment: .trailing) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: ImprintSpacing.space100) {
+                    // "All" chip
+                    if enabledCategories.count > 1 {
+                        ImprintFilterButton<EmptyView>(
+                            isSelected: selection == nil,
+                            label: "All",
+                            iconPosition: .none
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selection = nil
+                            }
+                        }
+                    }
+
+                    // Per-category icon buttons
+                    ForEach(enabledCategories) { category in
+                        let isSelected = selection?.persistentModelID == category.persistentModelID
+
+                        ImprintFilterButton(
+                            isSelected: isSelected,
+                            icon: IconoirCatalog.icon(for: category.iconName),
+                            iconPosition: .alone
+                        ) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selection = isSelected ? nil : category
+                            }
+                        }
                     }
                 }
+                // Extra trailing space so the fade doesn't cover the last chip
+                .padding(.trailing, 48)
             }
 
-            ForEach(enabledCategories) { category in
-                let isSelected = selection?.persistentModelID == category.persistentModelID
-                let boldColor = ColorDerivation.boldColor(from: category.colorHex)
-                let subtleColor = ColorDerivation.subtleColor(from: category.colorHex)
-                let darkSubtleColor = ColorDerivation.darkSubtleColor(from: category.colorHex)
-                let darkBoldColor = ColorDerivation.darkBoldColor(from: category.colorHex)
-
-                FilterChip(
-                    label: category.name,
-                    isSelected: isSelected,
-                    selectedBg: isDark ? darkSubtleColor : subtleColor,
-                    selectedText: isDark ? ImprintColors.paper : .white,
-                    unselectedBg: isDark ? ImprintColors.primary : ImprintColors.paper,
-                    unselectedBorder: isDark ? darkBoldColor : boldColor,
-                    unselectedText: isDark ? darkBoldColor : boldColor
-                ) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selection = isSelected ? nil : category
-                    }
-                }
-            }
+            // Trailing gradient fade
+            LinearGradient(
+                colors: [
+                    ImprintColors.neutralSubtlest.opacity(0),
+                    ImprintColors.neutralSubtlest
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+            .frame(width: 79, height: ImprintSpacing.size600)
+            .allowsHitTesting(false)
         }
-    }
-}
-
-// MARK: - Filter Chip
-
-private struct FilterChip: View {
-    let label: String
-    let isSelected: Bool
-    let selectedBg: Color
-    let selectedText: Color
-    let unselectedBg: Color
-    let unselectedBorder: Color
-    let unselectedText: Color
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(label)
-                .font(ImprintFonts.filterChip)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-                .background(isSelected ? selectedBg : unselectedBg)
-                .foregroundStyle(isSelected ? selectedText : unselectedText)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(
-                            isSelected ? Color.clear : unselectedBorder,
-                            lineWidth: 2
-                        )
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .frame(height: ImprintSpacing.size600)
     }
 }

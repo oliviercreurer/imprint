@@ -1,19 +1,23 @@
 import SwiftUI
 import SwiftData
 
-/// The custom footer overlay with gradient fade and + button.
-/// Tapping the + button reveals an animated category picker menu.
+/// The custom footer overlay with gradient fade, settings gear, and + button.
+/// Matches the Figma footer design:
+///   - Settings gear icon (24pt) left-aligned
+///   - Blue + button (48pt, blue/bold bg, radius/100) right-aligned
+///   - Gradient fade from transparent → neutralSubtlest
 struct FooterToolbar: View {
 
     let isDark: Bool
     let onAdd: (Category) -> Void
+    var onSettings: (() -> Void)? = nil
 
     @State private var showingMenu = false
 
     @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
     private var enabledCategories: [Category]
 
-    private var bgColor: Color { isDark ? ImprintColors.primary : ImprintColors.paper }
+    private var bgColor: Color { ImprintColors.neutralSubtlest }
 
     var body: some View {
         ZStack {
@@ -55,7 +59,7 @@ struct FooterToolbar: View {
                                 )
                         }
 
-                        // The × / + button
+                        // The × / + button — blue/bold bg
                         Button {
                             withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
                                 showingMenu.toggle()
@@ -63,16 +67,25 @@ struct FooterToolbar: View {
                         } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 18, weight: .medium))
-                                .foregroundStyle(isDark ? ImprintColors.primary : ImprintColors.paper)
-                                .frame(width: 48, height: 48)
-                                .background(isDark ? ImprintColors.paper : ImprintColors.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: showingMenu ? 24 : 8))
+                                .foregroundStyle(ImprintColors.textInverse)
+                                .frame(
+                                    width: ImprintSpacing.size800,
+                                    height: ImprintSpacing.size800
+                                )
+                                .background(ImprintColors.blueBold)
+                                .clipShape(
+                                    RoundedRectangle(
+                                        cornerRadius: showingMenu
+                                            ? ImprintSpacing.radiusRound
+                                            : ImprintSpacing.radius100
+                                    )
+                                )
                                 .rotationEffect(.degrees(showingMenu ? 45 : 0))
                         }
                     }
                 }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 40)
+                .padding(.horizontal, ImprintSpacing.space600)
+                .padding(.bottom, ImprintSpacing.space700)
             }
             .ignoresSafeArea(edges: .bottom)
         }
@@ -96,27 +109,33 @@ struct FooterToolbar: View {
                 startPoint: .top,
                 endPoint: .bottom
             )
-            .frame(height: 100)
+            .frame(height: 69)
             .allowsHitTesting(false)
 
-            // Solid background region with content
-            VStack(spacing: 16) {
-                // Toolbar row — spacers keep layout balanced around the centered add button
-                HStack {
-                    // Left spacer — handle chip sits in ContentView's global overlay
-                    Color.clear
-                        .frame(width: 48, height: 48)
-
-                    Spacer()
-
-                    // Right spacer matching the add button size
-                    Color.clear
-                        .frame(width: 48, height: 48)
+            // Solid background region with settings gear + spacer for + button
+            HStack {
+                // Settings gear icon
+                Button {
+                    onSettings?()
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 24))
+                        .foregroundStyle(ImprintColors.iconSubtle)
                 }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                // Placeholder matching the + button size
+                Color.clear
+                    .frame(
+                        width: ImprintSpacing.size800,
+                        height: ImprintSpacing.size800
+                    )
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 4)
-            .padding(.bottom, 40)
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space500)
+            .padding(.bottom, ImprintSpacing.space700)
             .background(bgColor)
         }
         .ignoresSafeArea(edges: .bottom)
@@ -125,10 +144,10 @@ struct FooterToolbar: View {
     // MARK: - Category Menu
 
     private var categoryMenu: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: ImprintSpacing.space200) {
             Text("Add...")
-                .font(ImprintFonts.jetBrainsMedium(14))
-                .foregroundStyle(ImprintColors.searchBorder)
+                .font(ImprintFonts.jetBrainsMedium(ImprintFonts.size400))
+                .foregroundStyle(ImprintColors.neutralSubtle)
 
             ForEach(enabledCategories) { category in
                 Button {
@@ -137,33 +156,35 @@ struct FooterToolbar: View {
                     }
                     onAdd(category)
                 } label: {
-                    HStack {
+                    HStack(spacing: ImprintSpacing.space100) {
+                        IconoirCatalog.icon(for: category.iconName)
+                            .frame(
+                                width: ImprintSpacing.size300,
+                                height: ImprintSpacing.size300
+                            )
+                            .foregroundStyle(ImprintColors.neutralBold)
+
                         Text(category.name)
-                            .font(ImprintFonts.jetBrainsMedium(14))
-                            .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
+                            .font(ImprintFonts.jetBrainsMedium(ImprintFonts.size400))
+                            .foregroundStyle(ImprintColors.textBoldest)
 
                         Spacer()
-
-                        // Colored legend square (filled)
-                        RoundedRectangle(cornerRadius: 1)
-                            .fill(ColorDerivation.subtleColor(from: category.colorHex))
-                            .frame(width: 10, height: 10)
                     }
                     .frame(height: 18)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(20)
-        .frame(width: 162)
-        .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.paper)
+        .padding(ImprintSpacing.space400)
+        .frame(width: 180)
+        .background(ImprintColors.neutralSubtlest)
         .overlay(
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: ImprintSpacing.radius200)
                 .strokeBorder(
-                    isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
-                    lineWidth: 2
+                    ImprintColors.neutralSubtle,
+                    lineWidth: ImprintSpacing.borderDefault
                 )
         )
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius200))
     }
 }

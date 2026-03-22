@@ -195,9 +195,7 @@ struct RecordFormView: View {
                         }
                     } label: {
                         HStack(spacing: 6) {
-                            IconoirCatalog.image(for: category.iconName)
-                                .resizable()
-                                .scaledToFit()
+                            IconoirCatalog.icon(for: category.iconName)
                                 .frame(width: 12, height: 12)
                             Text(category.name)
                                 .font(ImprintFonts.jetBrainsMedium(14))

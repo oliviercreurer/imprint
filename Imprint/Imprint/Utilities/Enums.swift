@@ -1,4 +1,4 @@
-import Foundation
+import SwiftUI
 
 // MARK: - Record Type
 
@@ -29,5 +29,25 @@ nonisolated enum RecordType: String, Codable, CaseIterable, Identifiable, Sendab
         case .queued: return 1
         }
     }
+
+    /// Per-page title color from the design system.
+    @MainActor var titleColor: Color {
+        switch self {
+        case .logged: ImprintColors.cyanBold
+        case .queued: ImprintColors.yellowBold
+        }
+    }
+}
+
+// MARK: - App Section
+
+/// The two top-level sections in the outer horizontal pager.
+/// Records (Log + Queue) share a search/filter context;
+/// Categories is a separate experience.
+nonisolated enum AppSection: String, CaseIterable, Identifiable, Sendable {
+    case records
+    case categories
+
+    var id: String { rawValue }
 }
 

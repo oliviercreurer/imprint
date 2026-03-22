@@ -1,15 +1,15 @@
 import SwiftUI
 import SwiftData
 
-/// The root view of the app. Swipe horizontally to page between screens
-/// (Log, Queue). The header, footer, and background stay fixed and
-/// crossfade smoothly; only the content list slides between pages.
+/// The root view of the app. Two-level horizontal pager:
+///
+///   Outer pager: [Records | Categories]
+///   Inner pager (Records): [Log | Queue] — shares search bar & filters
 ///
 /// Settings is presented as an overlay sheet (z-index layers):
-///   z4 – global @layal handle chip (always visible)
 ///   z3 – settings content (title + X + body)
 ///   z2 – settings blue background sheet
-///   z1 – underlying page (header, list, footer — untouched)
+///   z1 – underlying page (background, pager, footer)
 struct ContentView: View {
 
     @Environment(\.modelContext) private var modelContext
@@ -23,39 +23,59 @@ struct ContentView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode = "light"
 
-    @State private var selectedTab: RecordType = .logged
+    // ── Navigation state ───────────────────────────────────────────
+    /// Outer pager: records vs categories
+    @State private var selectedSection: AppSection = .records
+    /// Inner pager: log vs queue (only meaningful when section == .records)
+    @State private var selectedRecordTab: RecordType = .logged
+
     @State private var categoryFilter: Category?
     @State private var searchText = ""
-    /// Debounced copy of searchText — drives filtering after a short delay.
     @State private var debouncedSearchText = ""
-    /// Task handle for the debounce timer so we can cancel on each keystroke.
     @State private var debounceTask: Task<Void, Never>?
     @State private var showingNewRecord = false
     @State private var newRecordCategory: Category?
     @State private var selectedRecord: Record?
+    @State private var selectedCategory: Category?
 
     @State private var showingSettings = false
 
     /// Toast message shown briefly after moving a queue item to the log.
     @State private var toastMessage: String?
     @State private var toastVisible = false
-    /// Name pending for toast after fullScreenCover finishes dismissing.
     @State private var pendingToastName: String?
 
     /// Whether all month sections are currently expanded.
     @State private var allSectionsExpanded = true
-    /// Incremented each time expand/collapse changes,
-    /// so MonthSectionView can react via onChange.
     @State private var expandCollapseTrigger = 0
 
-    private var isQueue: Bool { selectedTab == .queued }
-    private var isDark: Bool { appearanceMode == "dark" }
+    @FocusState private var isSearchFocused: Bool
 
-    /// Flat ordered list of records for the current tab, matching RecordListView's filters.
+    // ── Derived state ──────────────────────────────────────────────
+
+    private var isDark: Bool { appearanceMode == "dark" }
+    private var isRecordSection: Bool { selectedSection == .records }
+
+    /// The composite page index across both pager levels (0 = Log, 1 = Queue, 2 = Categories).
+    private var compositePageIndex: Int {
+        isRecordSection ? selectedRecordTab.pageIndex : 2
+    }
+
+    /// The title to show in the shared title bar.
+    private var currentTitle: String {
+        isRecordSection ? selectedRecordTab.label : "Categories"
+    }
+
+    /// The title color for the current page.
+    private var currentTitleColor: Color {
+        isRecordSection ? selectedRecordTab.titleColor : ImprintColors.blueBold
+    }
+
+    /// Flat ordered list of records for the current record tab.
     private var currentTabRecords: [Record] {
         let enabledIds = Set(enabledCategories.map(\.persistentModelID))
         var results = allRecords.filter { record in
-            guard record.recordType == selectedTab else { return false }
+            guard record.recordType == selectedRecordTab else { return false }
             guard let cat = record.category else { return false }
             return enabledIds.contains(cat.persistentModelID)
         }
@@ -77,70 +97,77 @@ struct ContentView: View {
         return results
     }
 
+    // MARK: - Body
+
     var body: some View {
         ZStack {
 
             // ── z1: Underlying page ──────────────────────────────
-            // Background
-            (isDark ? ImprintColors.primary : ImprintColors.paper)
+            ImprintColors.neutralSubtlest
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                header
+                // Title bar clearance — same height for all pages
+                Color.clear.frame(height: ImprintSpacing.size800)
+                    .padding(.top, ImprintSpacing.space600)
 
-                VStack(spacing: 0) {
-                    // Content pages
-                    TabView(selection: $selectedTab) {
-                        ForEach(RecordType.allPages) { page in
-                            RecordListView(
-                                recordType: page,
-                                categoryFilter: categoryFilter,
-                                searchText: debouncedSearchText,
-                                isDark: isDark,
-                                allExpanded: allSectionsExpanded,
-                                expandTrigger: expandCollapseTrigger,
-                                onSelectRecord: { record in
-                                    selectedRecord = record
-                                }
-                            )
-                            .tag(page)
+                // Outer pager: [Records container | Categories]
+                TabView(selection: $selectedSection) {
+                    recordsContainer
+                        .tag(AppSection.records)
+
+                    CategoriesView(
+                        isDark: isDark,
+                        onSelectCategory: { category in
+                            selectedCategory = category
                         }
-                    }
-                    .tabViewStyle(.page(indexDisplayMode: .never))
+                    )
+                    .tag(AppSection.categories)
                 }
+                .tabViewStyle(.page(indexDisplayMode: .never))
             }
 
-            // Toast message
+            // Toast
             VStack {
                 Spacer()
 
-                (Text(toastMessage ?? "").font(ImprintFonts.jetBrainsBold(12))
-                 + Text(" added to Log").font(ImprintFonts.jetBrainsMedium(12)))
+                (Text(toastMessage ?? "").font(ImprintFonts.technical12Bold)
+                 + Text(" added to Log").font(ImprintFonts.technical12Medium))
                     .foregroundStyle(ImprintColors.primary)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
+                    .frame(height: ImprintSpacing.size800)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: ImprintSpacing.size100)
                             .fill(ImprintColors.accentBlue)
                     )
                     .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 4)
                     .scaleEffect(toastVisible ? 1.0 : 0.9)
                     .opacity(toastVisible ? 1.0 : 0.0)
             }
-            .padding(.horizontal, 40)
-            .padding(.bottom, 148)
+            .padding(.horizontal, ImprintSpacing.space700)
+            .padding(.bottom, 148) // Positioned above footer — functional offset
             .allowsHitTesting(false)
             .zIndex(10)
 
-            // Footer
+            // Footer — both always rendered, crossfade based on section
             FooterToolbar(
                 isDark: isDark,
                 onAdd: { category in
                     newRecordCategory = category
                     showingNewRecord = true
+                },
+                onSettings: {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        showingSettings.toggle()
+                    }
                 }
             )
-            .allowsHitTesting(!showingSettings)
+            .opacity(isRecordSection ? 1 : 0)
+            .allowsHitTesting(isRecordSection && !showingSettings)
+
+            categoriesFooter
+                .opacity(isRecordSection ? 0 : 1)
+                .allowsHitTesting(!isRecordSection && !showingSettings)
 
             // ── z2: Settings background sheet ────────────────────
             ImprintColors.accentBlueBold
@@ -152,7 +179,7 @@ struct ContentView: View {
             // ── z3: Shared title bar + settings body ─────────────
             VStack(spacing: 0) {
                 sharedTitleBar
-                    .zIndex(1) // keep title above settings body
+                    .zIndex(1)
 
                 if showingSettings {
                     SettingsView()
@@ -162,42 +189,13 @@ struct ContentView: View {
                 Spacer(minLength: 0)
             }
             .zIndex(25)
-
-            // ── z4: Global handle chip ───────────────────────────
-            VStack {
-                Spacer()
-                HStack {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.35)) {
-                            showingSettings.toggle()
-                        }
-                    } label: {
-                        Text("@layal")
-                            .font(ImprintFonts.jetBrainsBold(14))
-                            .foregroundStyle(ImprintColors.accentBlue)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Capsule().fill(showingSettings ? ImprintColors.paper : Color.clear))
-                            .overlay(Capsule().strokeBorder(showingSettings ? ImprintColors.paper : ImprintColors.accentBlue, lineWidth: 2))
-                    }
-                    .frame(height: 48)
-                    .contentShape(Rectangle())
-                    .buttonStyle(.plain)
-                    Spacer()
-                }
-                .padding(.horizontal, 32)
-                .padding(.bottom, 40)
-            }
-            .ignoresSafeArea(edges: .bottom)
-            .zIndex(30)
-
         }
-        .animation(.easeInOut(duration: 0.35), value: selectedTab)
+        .animation(.easeInOut(duration: 0.35), value: selectedSection)
+        .animation(.easeInOut(duration: 0.35), value: selectedRecordTab)
         .animation(.easeInOut(duration: 0.25), value: showingSettings)
         .onChange(of: searchText) { _, newValue in
             debounceTask?.cancel()
             if newValue.isEmpty {
-                // Clear immediately so the list snaps back without delay
                 debouncedSearchText = ""
             } else {
                 debounceTask = Task {
@@ -207,14 +205,9 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: selectedTab) { _, _ in
-            searchText = ""
-            debouncedSearchText = ""
-            debounceTask?.cancel()
-        }
         .sheet(isPresented: $showingNewRecord) {
             RecordFormView(
-                initialRecordType: selectedTab,
+                initialRecordType: selectedRecordTab,
                 initialCategory: newRecordCategory
             )
         }
@@ -231,9 +224,85 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // Seed default categories on first launch
             CategorySeeder.seedIfNeeded(context: modelContext)
         }
+        .preferredColorScheme(isDark ? .dark : .light)
+    }
+
+    // MARK: - Records Container (inner pager + shared search/filter)
+
+    /// The records experience: persistent search bar + filter bar above
+    /// an inner Log/Queue pager. Search state persists across both tabs.
+    private var recordsContainer: some View {
+        VStack(spacing: 0) {
+            // Search bar + filter bar — shared across Log/Queue
+            recordPageHeader
+
+            // Inner pager: Log | Queue
+            TabView(selection: $selectedRecordTab) {
+                ForEach(RecordType.allPages) { recordType in
+                    RecordListView(
+                        recordType: recordType,
+                        categoryFilter: categoryFilter,
+                        searchText: debouncedSearchText,
+                        isDark: isDark,
+                        allExpanded: allSectionsExpanded,
+                        expandTrigger: expandCollapseTrigger,
+                        onSelectRecord: { record in
+                            selectedRecord = record
+                        }
+                    )
+                    .tag(recordType)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+    }
+
+    // MARK: - Record Page Header
+
+    private var recordPageHeader: some View {
+        VStack(alignment: .leading, spacing: ImprintSpacing.space200) {
+            // Search bar
+            HStack(spacing: ImprintSpacing.space100) {
+                TextField("", text: $searchText, prompt:
+                    Text("Search...")
+                        .font(ImprintFonts.technical14Medium)
+                        .foregroundStyle(ImprintColors.textSubtler)
+                )
+                .font(ImprintFonts.technical14Medium)
+                .foregroundStyle(ImprintColors.textBoldest)
+                .focused($isSearchFocused)
+                .submitLabel(.done)
+                .onSubmit { isSearchFocused = false }
+
+                if isSearchFocused || !searchText.isEmpty {
+                    Button {
+                        if searchText.isEmpty {
+                            isSearchFocused = false
+                        } else {
+                            searchText = ""
+                        }
+                    } label: {
+                        Image(systemName: searchText.isEmpty ? "keyboard.chevron.compact.down" : "xmark.circle.fill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(ImprintColors.iconSubtle)
+                    }
+                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
+                }
+            }
+            .padding(.horizontal, ImprintSpacing.space300)
+            .frame(height: ImprintSpacing.size800)
+            .background(ImprintColors.inputSubtlest)
+            .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+            .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
+
+            // Filter bar
+            MediaFilterBar(selection: $categoryFilter, isDark: isDark)
+        }
+        .padding(.horizontal, ImprintSpacing.space600)
+        .padding(.top, ImprintSpacing.space500)
+        .padding(.bottom, ImprintSpacing.space300)
     }
 
     // MARK: - Toast
@@ -253,81 +322,75 @@ struct ContentView: View {
         }
     }
 
-    @FocusState private var isSearchFocused: Bool
+    // MARK: - Categories Footer
 
-    // MARK: - Header (z1 — Log / Queue only, no title)
+    private var categoriesFooter: some View {
+        VStack(spacing: 0) {
+            Spacer()
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Spacer matching the title bar height + 12pt breathing room below title
-            Color.clear.frame(height: 46)
-
-            MediaFilterBar(selection: $categoryFilter, isDark: isDark)
-
-            // Search bar
-            HStack(spacing: 8) {
-                TextField("", text: $searchText, prompt:
-                    Text(isQueue ? "Search queue" : "Search log")
-                        .font(ImprintFonts.searchPlaceholder)
-                        .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
-                )
-                .font(ImprintFonts.searchPlaceholder)
-                .foregroundStyle(isDark ? ImprintColors.paper : ImprintColors.primary)
-                .focused($isSearchFocused)
-                .submitLabel(.done)
-                .onSubmit { isSearchFocused = false }
-
-                // Clear / dismiss button when focused or has text
-                if isSearchFocused || !searchText.isEmpty {
-                    Button {
-                        if searchText.isEmpty {
-                            isSearchFocused = false
-                        } else {
-                            searchText = ""
-                        }
-                    } label: {
-                        Image(systemName: searchText.isEmpty ? "keyboard.chevron.compact.down" : "xmark.circle.fill")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundStyle(isDark ? ImprintColors.darkSecondary : ImprintColors.secondary)
-                    }
-                    .transition(.opacity.combined(with: .scale(scale: 0.8)))
-                }
-            }
-            .padding(.horizontal, 16)
-            .frame(height: 48)
-            .background(isDark ? ImprintColors.darkSurfaceBg : ImprintColors.searchBg)
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(
-                        isDark ? ImprintColors.darkSurfaceBorder : ImprintColors.searchBorder,
-                        lineWidth: 2
-                    )
+            LinearGradient(
+                stops: [
+                    .init(color: ImprintColors.neutralSubtlest.opacity(0), location: 0),
+                    .init(color: ImprintColors.neutralSubtlest.opacity(0.4), location: 0.4),
+                    .init(color: ImprintColors.neutralSubtlest.opacity(0.8), location: 0.7),
+                    .init(color: ImprintColors.neutralSubtlest, location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
             )
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .animation(.easeInOut(duration: 0.2), value: isSearchFocused)
+            .frame(height: 69)
+            .allowsHitTesting(false)
+
+            HStack {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.35)) {
+                        showingSettings.toggle()
+                    }
+                } label: {
+                    Image(systemName: "gearshape")
+                        .font(.system(size: 24))
+                        .foregroundStyle(ImprintColors.iconSubtle)
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Button {
+                    // TODO: present category creation flow
+                } label: {
+                    Text("Create")
+                        .font(ImprintFonts.technical14Medium)
+                        .foregroundStyle(ImprintColors.textInverse)
+                        .padding(.horizontal, ImprintSpacing.space400)
+                        .padding(.vertical, ImprintSpacing.space300)
+                        .background(ImprintColors.blueBold)
+                        .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space500)
+            .padding(.bottom, ImprintSpacing.space700)
+            .background(ImprintColors.neutralSubtlest)
         }
-        .padding(.horizontal, 32)
-        .padding(.top, 32)
-        .padding(.bottom, 16)
+        .ignoresSafeArea(edges: .bottom)
     }
 
-    // MARK: - Shared title bar (z3 — morphs between Log/Queue ↔ Settings)
+    // MARK: - Shared Title Bar
 
     private var sharedTitleBar: some View {
-        HStack(alignment: .lastTextBaseline) {
-            Text(showingSettings ? "Settings" : selectedTab.label)
+        HStack(alignment: .center) {
+            Text(showingSettings ? "Settings" : currentTitle)
                 .font(ImprintFonts.pageTitle)
                 .foregroundStyle(
                     showingSettings ? ImprintColors.paper
-                    : isDark ? ImprintColors.paper
-                    : ImprintColors.primary
+                    : currentTitleColor
                 )
                 .contentTransition(.numericText())
 
             Spacer()
 
             if showingSettings {
-                // Close button
                 Button {
                     withAnimation(.easeInOut(duration: 0.35)) {
                         showingSettings = false
@@ -340,21 +403,15 @@ struct ContentView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                // Dot page indicator — toggles Log / Queue
-                Button {
-                    withAnimation(.easeInOut(duration: 0.35)) {
-                        selectedTab = isQueue ? .logged : .queued
-                    }
-                } label: {
-                    DotIndicator(currentPage: selectedTab, isDark: isDark)
-                        .frame(height: 28)
-                }
-                .buttonStyle(.plain)
+                ImprintPageIndicator(
+                    pageCount: 3,
+                    currentPage: compositePageIndex
+                )
             }
         }
-        .padding(.horizontal, 32)
-        .padding(.top, 32)
-        .padding(.bottom, 16)
+        .padding(.horizontal, ImprintSpacing.space600)
+        .padding(.top, ImprintSpacing.space600)
+        .padding(.bottom, ImprintSpacing.space300)
     }
 }
 

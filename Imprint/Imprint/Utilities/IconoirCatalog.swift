@@ -73,10 +73,20 @@ enum IconoirCatalog {
         "dashboard-dots",
     ]
 
-    /// Returns the SwiftUI `Image` for a given icon name.
+    /// Returns the raw SwiftUI `Image` for a given icon name.
     /// Falls back to a generic square icon if the name isn't found.
     static func image(for name: String) -> Image {
         iconMap[name] ?? Iconoir.square.asImage
+    }
+
+    /// Returns a bolded icon view with heavier apparent stroke weight.
+    /// Uses a triple-render overlay technique to thicken the default strokes.
+    static func icon(for name: String) -> some View {
+        let img = image(for: name)
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
+        return img.overlay(img).overlay(img)
     }
 
     // MARK: - Private Lookup Table

@@ -88,13 +88,12 @@ struct RecordListView: View {
 
     private var loggedContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
+            LazyVStack(alignment: .leading, spacing: ImprintSpacing.space300) {
                 let groups = groupRecordsByMonth(filteredRecords)
 
                 ForEach(groups) { group in
                     MonthSectionView(
                         group: group,
-                        showBarChart: categoryFilter == nil,
                         searchText: searchText,
                         allExpanded: allExpanded,
                         expandTrigger: expandTrigger,
@@ -104,9 +103,9 @@ struct RecordListView: View {
                     }
                 }
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 16)
-            .padding(.bottom, 220) // Space for footer
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space300)
+            .padding(.bottom, footerClearance)
         }
         .scrollIndicators(.hidden)
     }
@@ -115,20 +114,20 @@ struct RecordListView: View {
 
     private var queuedContent: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 12) {
+            LazyVStack(alignment: .leading, spacing: ImprintSpacing.space200) {
                 ForEach(Array(filteredRecords.enumerated()), id: \.element.persistentModelID) { index, record in
                     Button {
                         onSelectRecord(record)
                     } label: {
-                        RecordRowView(record: record, isDark: isDark)
+                        RecordRowView(record: record, isDark: isDark, showDate: false)
                     }
                     .buttonStyle(.plain)
                     .staggeredAppearance(index: index)
                 }
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 16)
-            .padding(.bottom, 220)
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space300)
+            .padding(.bottom, footerClearance)
         }
         .scrollIndicators(.hidden)
     }
@@ -136,23 +135,28 @@ struct RecordListView: View {
     // MARK: - Empty State
 
     private var emptyState: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: ImprintSpacing.size200) {
             Spacer()
 
             Text(recordType == .logged ? "No logged records yet" : "No queued records yet")
-                .font(ImprintFonts.jetBrainsMedium(16))
-                .foregroundStyle(ImprintColors.secondaryText(isDark))
+                .font(ImprintFonts.body16Medium)
+                .foregroundStyle(ImprintColors.textSubtler)
 
             Text(recordType == .logged
                 ? "Tap + to log something you've done."
                 : "Tap + to save something for later.")
-                .font(ImprintFonts.jetBrainsRegular(14))
-                .foregroundStyle(ImprintColors.secondaryText(isDark))
+                .font(ImprintFonts.body14Medium)
+                .foregroundStyle(ImprintColors.textSubtler)
                 .multilineTextAlignment(.center)
 
             Spacer()
             Spacer()
         }
-        .padding(.horizontal, 48)
+        .padding(.horizontal, ImprintSpacing.size800)
     }
+
+    // MARK: - Constants
+
+    /// Bottom padding to clear the floating footer toolbar.
+    private var footerClearance: CGFloat { 220 }
 }

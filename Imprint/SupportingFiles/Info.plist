@@ -4,9 +4,11 @@
 <dict>
 	<key>UIAppFonts</key>
 	<array>
-		<string>Platypi-ExtraBold.ttf</string>
-		<string>Platypi-SemiBold.ttf</string>
-		<string>Platypi-Light.ttf</string>
+		<string>Outfit-Regular.ttf</string>
+		<string>Outfit-Medium.ttf</string>
+		<string>Outfit-SemiBold.ttf</string>
+		<string>Outfit-Bold.ttf</string>
+		<string>Outfit-ExtraBold.ttf</string>
 		<string>JetBrainsMono-Bold.ttf</string>
 		<string>JetBrainsMono-SemiBold.ttf</string>
 		<string>JetBrainsMono-Medium.ttf</string>
