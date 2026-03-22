@@ -140,6 +140,7 @@ struct RecordListView: View {
 
             Text(recordType == .logged ? "No logged records yet" : "No queued records yet")
                 .font(ImprintFonts.body16Medium)
+                .lineSpacing(ImprintFonts.body16LineSpacing)
                 .foregroundStyle(ImprintColors.textSubtler)
 
             Text(recordType == .logged

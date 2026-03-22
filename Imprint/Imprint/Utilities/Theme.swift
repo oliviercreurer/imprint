@@ -331,13 +331,17 @@ enum ImprintFonts {
     //   Technical/12pt/Bold   → JetBrains Mono Bold 12pt
     //
     // Body (Outfit):
-    //   Body/14pt/Medium     → Outfit Medium 14pt
-    //   Body/14pt/Bold       → Outfit Bold 14pt
-    //   Body/12pt/Medium     → Outfit Medium 12pt
-    //   Body/12pt/Bold       → Outfit Bold 12pt
+    //   Body/16pt/Regular    → Outfit Regular 16pt, lineHeight 24pt
+    //   Body/16pt/Medium     → Outfit Medium 16pt, lineHeight 24pt
+    //   Body/16pt/Bold       → Outfit Bold 16pt, lineHeight 24pt
+    //   Body/14pt/Regular    → Outfit Regular 14pt, lineHeight 18pt
+    //   Body/14pt/Medium     → Outfit Medium 14pt, lineHeight 18pt
+    //   Body/14pt/Bold       → Outfit Bold 14pt, lineHeight 18pt
 
     // Heading
     static var headingH3: Font        { outfitSemiBold(size800) }
+    static var headingH4: Font        { outfitSemiBold(size700) }
+    static var headingH5: Font        { outfitSemiBold(size600) }
 
     // Technical — named to match Figma style tokens
     static var technical14Medium: Font { jetBrainsMedium(size400) }
@@ -346,12 +350,21 @@ enum ImprintFonts {
     static var technical12Bold: Font   { jetBrainsBold(size200) }
 
     // Body — named to match Figma style tokens
+    // 16pt group: lineHeight = height/600 (24pt)
     static var body16Regular: Font     { outfitRegular(size500) }
     static var body16Medium: Font      { outfitMedium(size500) }
     static var body16Bold: Font        { outfitBold(size500) }
+    /// Line spacing for body/16pt styles. Apply via `.lineSpacing()` modifier.
+    /// Figma lineHeight 24pt − font size 16pt = 8pt total extra leading.
+    /// SwiftUI `.lineSpacing()` is inter-line only, so use ~4pt for a close match.
+    static let body16LineSpacing: CGFloat = 4
+
+    // 14pt group: lineHeight = height/300 (18pt)
     static var body14Regular: Font     { outfitRegular(size400) }
     static var body14Medium: Font      { outfitMedium(size400) }
     static var body14Bold: Font        { outfitBold(size400) }
+    /// Line spacing for body/14pt styles (Figma lineHeight 18pt − font size 14pt = 4pt).
+    static let body14LineSpacing: CGFloat = 2
 
     // ── Legacy Semantic Shortcuts ─────────────────────────────────
     // These bridge old call sites to the new style names.

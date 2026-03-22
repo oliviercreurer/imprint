@@ -420,7 +420,7 @@ struct RecordDetailView: View {
                     if let definition = fieldValue.fieldDefinition {
                         detailSection(definition.label) {
                             switch definition.fieldType {
-                            case .text:
+                            case .shortText, .longText, .url, .country:
                                 if let text = fieldValue.textValue {
                                     Text(text)
                                         .font(ImprintFonts.jetBrainsMedium(14))
@@ -428,7 +428,14 @@ struct RecordDetailView: View {
                                         .lineSpacing(4)
                                 }
 
-                            case .number:
+                            case .number, .slider:
+                                if let display = fieldValue.displayValue {
+                                    Text(display)
+                                        .font(ImprintFonts.jetBrainsMedium(14))
+                                        .foregroundStyle(textColor)
+                                }
+
+                            case .checkbox:
                                 if let display = fieldValue.displayValue {
                                     Text(display)
                                         .font(ImprintFonts.jetBrainsMedium(14))
@@ -442,7 +449,7 @@ struct RecordDetailView: View {
                                         .foregroundStyle(textColor)
                                 }
 
-                            case .image:
+                            case .image, .attachment:
                                 if let path = fieldValue.imagePath,
                                    let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                                     let fileURL = docsDir.appendingPathComponent(path)

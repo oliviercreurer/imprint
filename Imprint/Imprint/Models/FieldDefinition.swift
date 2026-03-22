@@ -15,7 +15,7 @@ final class FieldDefinition {
     var label: String
 
     /// The data type of this field. Stored as a raw string for SwiftData compatibility.
-    /// One of: "text", "date", "number", "image".
+    /// One of the FieldType raw values (e.g. "shortText", "longText", "image", etc.).
     var fieldTypeRaw: String
 
     /// Controls field display order in forms and detail views.
@@ -38,7 +38,7 @@ final class FieldDefinition {
     /// Typed accessor for the field type.
     @Transient
     var fieldType: FieldType {
-        get { FieldType(rawValue: fieldTypeRaw) ?? .text }
+        get { FieldType(rawValue: fieldTypeRaw) ?? .shortText }
         set { fieldTypeRaw = newValue.rawValue }
     }
 
@@ -62,29 +62,47 @@ final class FieldDefinition {
 
 /// The supported data types for custom fields.
 nonisolated enum FieldType: String, Codable, CaseIterable, Identifiable, Sendable {
-    case text
-    case date
-    case number
+    case shortText
+    case longText
     case image
+    case checkbox
+    case number
+    case slider
+    case date
+    case url
+    case country
+    case attachment
 
     var id: String { rawValue }
 
     var label: String {
         switch self {
-        case .text: "Text"
-        case .date: "Date"
-        case .number: "Number"
-        case .image: "Image"
+        case .shortText:  "Short text"
+        case .longText:   "Long text"
+        case .image:      "Image"
+        case .checkbox:   "Checkbox"
+        case .number:     "Number"
+        case .slider:     "Slider"
+        case .date:       "Date"
+        case .url:        "URL"
+        case .country:    "Country"
+        case .attachment: "Attachment"
         }
     }
 
-    /// SF Symbol for field type selection UI.
-    var iconName: String {
+    /// Iconoir icon name (kebab-case) for this field type.
+    var iconoirName: String {
         switch self {
-        case .text: "textformat"
-        case .date: "calendar"
-        case .number: "number"
-        case .image: "photo"
+        case .shortText:  "text-square"
+        case .longText:   "align-left"
+        case .image:      "media-image"
+        case .checkbox:   "check-circle"
+        case .number:     "number-0-square"
+        case .slider:     "git-commit"
+        case .date:       "calendar"
+        case .url:        "link"
+        case .country:    "white-flag"
+        case .attachment: "attachment"
         }
     }
 }

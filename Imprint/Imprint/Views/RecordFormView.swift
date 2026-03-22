@@ -44,6 +44,7 @@ struct RecordFormView: View {
     @State private var textValues: [PersistentIdentifier: String] = [:]
     @State private var dateValues: [PersistentIdentifier: Date] = [:]
     @State private var imageDataValues: [PersistentIdentifier: Data] = [:]
+    @State private var boolValues: [PersistentIdentifier: Bool] = [:]
 
     private var isEditing: Bool { existingRecord != nil && !isRelogging }
     private var canSave: Bool {
@@ -254,11 +255,20 @@ struct RecordFormView: View {
         let id = definition.persistentModelID
 
         switch definition.fieldType {
-        case .text:
+        case .shortText, .url, .country:
             FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
                 TextField("", text: textBinding(for: id))
                     .font(ImprintFonts.formValue)
                     .foregroundStyle(ImprintColors.modalText(isDark))
+                    .keyboardType(definition.fieldType == .url ? .URL : .default)
+            }
+
+        case .longText:
+            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
+                TextField("", text: textBinding(for: id), axis: .vertical)
+                    .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
+                    .lineLimit(3...6)
             }
 
         case .number:
@@ -267,6 +277,20 @@ struct RecordFormView: View {
                     .font(ImprintFonts.formValue)
                     .foregroundStyle(ImprintColors.modalText(isDark))
                     .keyboardType(.decimalPad)
+            }
+
+        case .slider:
+            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
+                TextField("", text: textBinding(for: id))
+                    .font(ImprintFonts.formValue)
+                    .foregroundStyle(ImprintColors.modalText(isDark))
+                    .keyboardType(.numberPad)
+            }
+
+        case .checkbox:
+            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
+                Toggle("", isOn: boolBinding(for: id))
+                    .labelsHidden()
             }
 
         case .date:
@@ -288,7 +312,7 @@ struct RecordFormView: View {
                 )
             }
 
-        case .image:
+        case .image, .attachment:
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(definition.label)
@@ -315,6 +339,13 @@ struct RecordFormView: View {
         Binding(
             get: { textValues[id] ?? "" },
             set: { textValues[id] = $0 }
+        )
+    }
+
+    private func boolBinding(for id: PersistentIdentifier) -> Binding<Bool> {
+        Binding(
+            get: { boolValues[id] ?? false },
+            set: { boolValues[id] = $0 }
         )
     }
 
@@ -376,20 +407,22 @@ struct RecordFormView: View {
             let id = definition.persistentModelID
 
             switch definition.fieldType {
-            case .text:
+            case .shortText, .longText, .url, .country:
                 let text = textValues[id]?.trimmingCharacters(in: .whitespaces) ?? ""
                 fieldValue.textValue = text.isEmpty ? nil : text
 
-            case .number:
+            case .number, .slider:
                 let text = textValues[id]?.trimmingCharacters(in: .whitespaces) ?? ""
                 fieldValue.numberValue = Double(text)
+
+            case .checkbox:
+                fieldValue.boolValue = boolValues[id]
 
             case .date:
                 fieldValue.dateValue = dateValues[id]
 
-            case .image:
+            case .image, .attachment:
                 if let data = imageDataValues[id] {
-                    // Save image to disk and store the path
                     let path = saveImageToDisk(data: data, recordId: record.persistentModelID, fieldId: id)
                     fieldValue.imagePath = path
                 }
@@ -456,18 +489,19 @@ struct RecordFormView: View {
                 let id = definition.persistentModelID
 
                 switch definition.fieldType {
-                case .text:
+                case .shortText, .longText, .url, .country:
                     textValues[id] = fieldValue.textValue ?? ""
-                case .number:
+                case .number, .slider:
                     if let num = fieldValue.numberValue {
                         textValues[id] = num.truncatingRemainder(dividingBy: 1) == 0
                             ? String(Int(num))
                             : String(num)
                     }
+                case .checkbox:
+                    boolValues[id] = fieldValue.boolValue ?? false
                 case .date:
                     dateValues[id] = fieldValue.dateValue
-                case .image:
-                    // Load image data from disk if path exists
+                case .image, .attachment:
                     if let path = fieldValue.imagePath,
                        let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
                         let fileURL = docsDir.appendingPathComponent(path)

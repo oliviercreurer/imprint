@@ -3,17 +3,17 @@ import Iconoir
 
 // MARK: - Field Component
 // Figma: Field (state: locked/optional/required)
-// A row displaying a field name with an icon, used in record detail views.
+// A row displaying a field name with an icon, used in category editor views.
 // Background: neutral/subtler (#F2F0E5 light)
 // Height: size/800 (48pt)
 // Corner radius: radius/100 (8pt)
 // Padding: space/300 horizontal (16pt), space/100 vertical (8pt)
-// Icon: size/300 (16pt), icon/subtle color
-// Font: Technical/Medium (JetBrains Mono Medium, size/400 14pt, height/300 18pt)
+// Icon: 16pt, icon/subtle color
+// Name: Technical/14pt/Medium, neutral/boldest
 // States:
-//   locked  → full row at stateDisabled opacity (0.4)
-//   optional → lock icon on right, red/subtle warning icon
-//   required → "Required" label + warning icon on right
+//   locked   → lock icon on right, full row at stateDisabled opacity (0.4)
+//   optional → chevron.right on right
+//   required → "Required" label (Technical/12pt/Bold, red/subtle) + chevron.right
 
 /// A field row component matching the Figma Field variants.
 struct ImprintField<Icon: View>: View {
@@ -35,11 +35,11 @@ struct ImprintField<Icon: View>: View {
             // Left: icon + field name
             HStack(spacing: ImprintSpacing.space100) {
                 icon
-                    .frame(width: ImprintSpacing.size300, height: ImprintSpacing.size300)
+                    .frame(width: 16, height: 16)
                     .foregroundStyle(ImprintColors.iconSubtle)
 
                 Text(fieldName)
-                    .font(ImprintFonts.jetBrainsMedium(ImprintFonts.size400))
+                    .font(ImprintFonts.technical14Medium)
                     .foregroundStyle(ImprintColors.neutralBoldest)
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -49,29 +49,23 @@ struct ImprintField<Icon: View>: View {
             switch state {
             case .locked:
                 Image(systemName: "lock")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: ImprintSpacing.size300, height: ImprintSpacing.size300)
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(ImprintColors.iconSubtle)
 
             case .optional:
-                Image(systemName: "exclamationmark.circle")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: ImprintSpacing.size300, height: ImprintSpacing.size300)
-                    .foregroundStyle(ImprintColors.redSubtle)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(ImprintColors.iconSubtle)
 
             case .required:
                 HStack(spacing: ImprintSpacing.space200) {
                     Text("Required")
-                        .font(ImprintFonts.jetBrainsMedium(ImprintFonts.size200))
-                        .foregroundStyle(ImprintColors.textSubtle)
-
-                    Image(systemName: "exclamationmark.circle")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: ImprintSpacing.size300, height: ImprintSpacing.size300)
+                        .font(ImprintFonts.technical12Bold)
                         .foregroundStyle(ImprintColors.redSubtle)
+
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(ImprintColors.iconSubtle)
                 }
             }
         }

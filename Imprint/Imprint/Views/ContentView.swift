@@ -39,6 +39,7 @@ struct ContentView: View {
     @State private var selectedCategory: Category?
 
     @State private var showingSettings = false
+    @State private var showingCreateCategory = false
 
     /// Toast message shown briefly after moving a queue item to the log.
     @State private var toastMessage: String?
@@ -211,6 +212,9 @@ struct ContentView: View {
                 initialCategory: newRecordCategory
             )
         }
+        .sheet(isPresented: $showingCreateCategory) {
+            CategoryEditorView()
+        }
         .fullScreenCover(item: $selectedRecord, onDismiss: {
             if let name = pendingToastName {
                 pendingToastName = nil
@@ -356,7 +360,7 @@ struct ContentView: View {
                 Spacer()
 
                 Button {
-                    // TODO: present category creation flow
+                    showingCreateCategory = true
                 } label: {
                     Text("Create")
                         .font(ImprintFonts.technical14Medium)

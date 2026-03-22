@@ -8,7 +8,7 @@ import Iconoir
 // Corner radius: radius/100 (8pt)
 // Padding: space/300 (16pt)
 // Icon: size/300 (16pt), icon/subtlest when selected, icon/bold when not
-// Text: Technical/Medium (size/400 14pt), text/inverse when selected, text/boldest when not
+// Text: Technical/12pt/Bold (size/200 12pt), text/inverse when selected, text/boldest when not
 
 /// A field type toggle pill matching the Figma FieldTypeSelector component.
 struct ImprintFieldTypeSelector<Icon: View>: View {
@@ -26,7 +26,7 @@ struct ImprintFieldTypeSelector<Icon: View>: View {
                     .foregroundStyle(isSelected ? ImprintColors.iconSubtlest : ImprintColors.iconBold)
 
                 Text(fieldType)
-                    .font(ImprintFonts.jetBrainsMedium(ImprintFonts.size400))
+                    .font(ImprintFonts.technical12Bold)
                     .foregroundStyle(isSelected ? ImprintColors.textInverse : ImprintColors.textBoldest)
                     .lineLimit(1)
             }

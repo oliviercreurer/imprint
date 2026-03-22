@@ -82,7 +82,7 @@ extension Record {
 
     /// Returns the display value of the first text field (useful for subtitles).
     var firstTextFieldValue: String? {
-        sortedFieldValues.first { $0.fieldDefinition?.fieldType == .text }?.textValue
+        sortedFieldValues.first { $0.fieldDefinition?.fieldType == .shortText }?.textValue
     }
 
     /// Returns the image path of the first image field (useful for covers).

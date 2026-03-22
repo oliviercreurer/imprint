@@ -33,6 +33,8 @@ enum IconoirCatalog {
         // Documents & Organization
         "reports", "align-left", "list", "attachment",
         "archive", "folder", "bookmark", "pin", "post",
+        "link", "text-square", "check-circle",
+        "number-0-square", "git-commit", "white-flag",
 
         // Business & Finance
         "suitcase", "wallet", "apple-wallet", "dollar-circle", "bank",
@@ -161,6 +163,12 @@ enum IconoirCatalog {
         "bookmark":         Iconoir.bookmark.asImage,
         "pin":              Iconoir.pin.asImage,
         "post":             Iconoir.post.asImage,
+        "link":             Iconoir.link.asImage,
+        "text-square":      Iconoir.textSquare.asImage,
+        "check-circle":     Iconoir.checkCircle.asImage,
+        "number-0-square":  Iconoir.number0Square.asImage,
+        "git-commit":       Iconoir.gitCommit.asImage,
+        "white-flag":       Iconoir.whiteFlag.asImage,
 
         // Business & Finance
         "suitcase":         Iconoir.suitcase.asImage,

@@ -1,16 +1,26 @@
 import SwiftUI
 import SwiftData
 
-/// A modal for creating or editing a user-defined category.
-///
-/// Lets users set the category name, icon, color, and manage field definitions
-/// (add, remove, reorder). Integrated into Settings via SettingsView.
+// MARK: - Category Editor View
+// Figma: new-category/empty (node 115:7937)
+// A full-screen overlay for creating or editing a user-defined category.
+//
+// Layout (top → bottom, inside a ScrollView):
+//   1. Header: title (Heading/H4) + close button (size/600 circle, neutral/subtler, radius/round)
+//   2. Description: Body/16/Regular, text/subtle
+//   3. Name input (flex) + Icon selector (48pt square)
+//   4. Divider: 1pt, neutral/subtle
+//   5. "Form Fields" section heading (Heading/H5) + description
+//   6. Locked default fields: Name (text-square), Log date (calendar), Note (align-left)
+//   7. "Add field" button: cyan/subtlest bg, cyan/subtler border, Technical/14pt/Medium
+//   8. User-added custom fields (ImprintField, optional/required states)
+//
+// All spacing uses design tokens from ImprintSpacing.
+
 struct CategoryEditorView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("appearanceMode") private var appearanceMode = "light"
-    private var isDark: Bool { appearanceMode == "dark" }
 
     /// If set, we're editing an existing category.
     var existingCategory: Category?
@@ -20,10 +30,10 @@ struct CategoryEditorView: View {
     @State private var name: String = ""
     @State private var iconName: String = "cinema-old"
     @State private var colorHex: String = "#3B82F6"
-    @State private var selectedColor: Color = .blue
     @State private var fields: [EditableField] = []
-    @State private var showingDeleteConfirmation = false
     @State private var showingIconPicker = false
+    @State private var showingDeleteConfirmation = false
+    @State private var showingFieldTypePicker = false
 
     private var isEditing: Bool { existingCategory != nil }
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -36,9 +46,10 @@ struct CategoryEditorView: View {
         var isRequired: Bool
     }
 
+    // MARK: - Icon Picker State
+
     @State private var iconSearchText: String = ""
 
-    /// Filtered icon names based on the search query.
     private var filteredIconNames: [String] {
         if iconSearchText.trimmingCharacters(in: .whitespaces).isEmpty {
             return IconoirCatalog.allNames
@@ -47,143 +58,47 @@ struct CategoryEditorView: View {
         return IconoirCatalog.allNames.filter { $0.localizedCaseInsensitiveContains(query) }
     }
 
+    // MARK: - Body
+
     var body: some View {
-        VStack(spacing: 0) {
-            // Title bar
-            HStack {
-                Text(isEditing ? "Edit Category" : "New Category")
-                    .font(ImprintFonts.modalTitle)
-                    .foregroundStyle(ImprintColors.headingText(isDark))
+        ZStack(alignment: .bottom) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: ImprintSpacing.space400) {
+                    // ── 1. Header ──────────────────────────────────
+                    headerSection
 
-                Spacer()
+                    // ── 2. Name + Icon row ────────────────────────
+                    nameAndIconRow
 
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(ImprintColors.headingText(isDark))
-                        .frame(width: 32, height: 32)
+                    // ── 3. Divider ────────────────────────────────
+                    Rectangle()
+                        .fill(ImprintColors.neutralSubtle)
+                        .frame(height: 1)
+
+                    // ── 4. Form Fields section ────────────────────
+                    formFieldsSection
                 }
+                .padding(.horizontal, ImprintSpacing.space600)
+                .padding(.top, ImprintSpacing.space900)
+                .padding(.bottom, 200)
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 48)
-            .padding(.bottom, 16)
-            .background(ImprintColors.modalBg(isDark))
+            .scrollIndicators(.hidden)
 
-            // Scrollable form
-            ZStack(alignment: .bottom) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Name
-                        FormField(label: "Name", isRequired: true, isDark: isDark) {
-                            TextField("e.g. Film, Restaurant, Hike", text: $name)
-                                .font(ImprintFonts.formValue)
-                                .foregroundStyle(ImprintColors.modalText(isDark))
-                        }
-
-                        // Icon picker
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Icon")
-                                .font(ImprintFonts.formLabel)
-                                .foregroundStyle(ImprintColors.headingText(isDark))
-
-                            iconGrid
-                        }
-
-                        // Color picker
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Color")
-                                .font(ImprintFonts.formLabel)
-                                .foregroundStyle(ImprintColors.headingText(isDark))
-
-                            ColorPicker("", selection: $selectedColor, supportsOpacity: false)
-                                .labelsHidden()
-                                .onChange(of: selectedColor) { _, newColor in
-                                    colorHex = ColorDerivation.hex(from: newColor)
-                                }
-                        }
-
-                        // Preview
-                        categoryPreview
-
-                        // Fields
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Fields")
-                                .font(ImprintFonts.formLabel)
-                                .foregroundStyle(ImprintColors.headingText(isDark))
-
-                            ForEach(Array(fields.enumerated()), id: \.element.id) { index, field in
-                                fieldRow(index: index, field: field)
-                            }
-
-                            addFieldButton
-                        }
-
-                        // Delete button (editing only)
-                        if isEditing, let category = existingCategory, category.canDelete {
-                            Button {
-                                showingDeleteConfirmation = true
-                            } label: {
-                                Text("Delete Category")
-                                    .font(ImprintFonts.jetBrainsMedium(14))
-                                    .foregroundStyle(.red)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 48)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .strokeBorder(.red.opacity(0.3), lineWidth: 1)
-                                    )
-                            }
-                            .buttonStyle(.plain)
-                        } else if isEditing, let category = existingCategory, !category.canDelete {
-                            Text("This category can't be deleted because it still has records.")
-                                .font(ImprintFonts.jetBrainsRegular(13))
-                                .foregroundStyle(ImprintColors.secondaryText(isDark))
-                        }
-                    }
-                    .padding(.horizontal, 32)
-                    .padding(.top, 16)
-                    .padding(.bottom, 200)
-                }
-
-                // Bottom fade + save button
-                VStack(spacing: 0) {
-                    LinearGradient(
-                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 60)
-
-                    VStack {
-                        Button {
-                            saveCategory()
-                            dismiss()
-                        } label: {
-                            Text(isEditing ? "Save" : "Create Category")
-                                .font(ImprintFonts.jetBrainsMedium(16))
-                                .foregroundStyle(ImprintColors.ctaText(isDark))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(canSave ? ImprintColors.ctaFill(isDark) : ImprintColors.ctaFill(isDark).opacity(0.3))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                        .disabled(!canSave)
-                        .padding(.horizontal, 32)
-                    }
-                    .padding(.bottom, 40)
-                    .frame(maxWidth: .infinity)
-                    .background(ImprintColors.modalBg(isDark))
-                }
-                .ignoresSafeArea(edges: .bottom)
-            }
+            // ── Bottom fade + save button ─────────────────────
+            bottomBar
         }
-        .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
+        .background(ImprintColors.neutralSubtlest.ignoresSafeArea())
         .onAppear(perform: populateFromExisting)
-        .presentationCornerRadius(42)
+        .presentationCornerRadius(ImprintSpacing.radius500)
+        .sheet(isPresented: $showingIconPicker) {
+            iconPickerSheet
+        }
+        .sheet(isPresented: $showingFieldTypePicker) {
+            fieldTypePickerSheet
+        }
         .alert("Delete Category", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
                 if let category = existingCategory {
-                    // Delete field definitions (cascade should handle this, but be explicit)
                     for fd in category.fieldDefinitions {
                         modelContext.delete(fd)
                     }
@@ -197,172 +112,362 @@ struct CategoryEditorView: View {
         }
     }
 
-    // MARK: - Icon Grid
+    // MARK: - Header Section
 
-    private var iconGrid: some View {
-        VStack(spacing: 8) {
-            // Search field
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12))
-                    .foregroundStyle(ImprintColors.secondaryText(isDark))
-                TextField("Search icons", text: $iconSearchText)
-                    .font(ImprintFonts.jetBrainsRegular(13))
-                    .foregroundStyle(ImprintColors.modalText(isDark))
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: ImprintSpacing.space300) {
+            // Title + close
+            HStack {
+                Text(isEditing ? "Edit Category" : "New Category")
+                    .font(ImprintFonts.headingH4)
+                    .foregroundStyle(ImprintColors.textBoldest)
+                    .tracking(-0.5)
+
+                Spacer()
+
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: ImprintSpacing.size300, weight: .medium))
+                        .foregroundStyle(ImprintColors.iconSubtle)
+                        .frame(
+                            width: ImprintSpacing.size600,
+                            height: ImprintSpacing.size600
+                        )
+                        .background(ImprintColors.neutralSubtler)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(ImprintColors.inputBg(isDark))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 1)
+
+            // Description
+            Text("Create a new category. Set a name, an icon, and compose its form below.")
+                .font(ImprintFonts.body16Regular)
+                .lineSpacing(ImprintFonts.body16LineSpacing)
+                .foregroundStyle(ImprintColors.textSubtle)
+        }
+    }
+
+    // MARK: - Name + Icon Row
+
+    private var nameAndIconRow: some View {
+        HStack(alignment: .top, spacing: ImprintSpacing.space200) {
+            // Name input (flex)
+            VStack(alignment: .leading, spacing: ImprintSpacing.space50) {
+                Text("Field label")
+                    .font(ImprintFonts.technical12Bold)
+                    .foregroundStyle(ImprintColors.textSubtle)
+
+                TextField("e.g. Film", text: $name)
+                    .font(ImprintFonts.technical14Medium)
+                    .foregroundStyle(ImprintColors.textBoldest)
+                    .frame(height: ImprintSpacing.size800)
+                    .padding(.horizontal, ImprintSpacing.space300)
+                    .background(ImprintColors.inputSubtlest)
+                    .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+            }
+
+            // Icon selector
+            VStack(alignment: .leading, spacing: ImprintSpacing.space50) {
+                Text("Icon")
+                    .font(ImprintFonts.technical12Bold)
+                    .foregroundStyle(ImprintColors.textSubtle)
+
+                Button { showingIconPicker = true } label: {
+                    IconoirCatalog.icon(for: iconName)
+                        .frame(
+                            width: ImprintSpacing.size400,
+                            height: ImprintSpacing.size400
+                        )
+                        .foregroundStyle(ImprintColors.iconSubtle)
+                        .frame(
+                            width: ImprintSpacing.size800,
+                            height: ImprintSpacing.size800
+                        )
+                        .background(ImprintColors.neutralSubtler)
+                        .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.space100))
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(width: ImprintSpacing.size800)
+        }
+    }
+
+    // MARK: - Form Fields Section
+
+    private var formFieldsSection: some View {
+        VStack(alignment: .leading, spacing: ImprintSpacing.space300) {
+            // Section heading + description
+            VStack(alignment: .leading, spacing: ImprintSpacing.space100) {
+                Text("Form Fields")
+                    .font(ImprintFonts.headingH5)
+                    .foregroundStyle(ImprintColors.textBoldest)
+
+                Text("All category forms include name, date, and note fields by default. These can't be deleted. Drag and drop your added fields to re-order them.")
+                    .font(ImprintFonts.body16Regular)
+                    .lineSpacing(ImprintFonts.body16LineSpacing)
+                    .foregroundStyle(ImprintColors.textSubtle)
+            }
+
+            // Default locked fields + user fields
+            VStack(alignment: .leading, spacing: ImprintSpacing.space100) {
+                // Name (locked)
+                ImprintField(
+                    fieldName: "Name",
+                    icon: IconoirCatalog.icon(for: "text-square"),
+                    state: .locked
+                )
+
+                // Log date (locked) + helper text
+                VStack(alignment: .leading, spacing: ImprintSpacing.space100) {
+                    ImprintField(
+                        fieldName: "Log date",
+                        icon: IconoirCatalog.icon(for: "calendar"),
+                        state: .locked
+                    )
+
+                    Text("The log date field will only appear if adding an entry to your log.")
+                        .font(ImprintFonts.body14Medium)
+                        .foregroundStyle(ImprintColors.textSubtler)
+                }
+            }
+
+            // Add field button
+            addFieldButton
+
+            // User-added custom fields
+            ForEach(Array(fields.enumerated()), id: \.element.id) { index, field in
+                userFieldRow(index: index, field: field)
+            }
+
+            // Note (locked, always last)
+            ImprintField(
+                fieldName: "Note",
+                icon: IconoirCatalog.icon(for: "align-left"),
+                state: .locked
             )
 
-            // Grid
-            LazyVGrid(
-                columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 7),
-                spacing: 8
-            ) {
-                ForEach(filteredIconNames, id: \.self) { icon in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            iconName = icon
-                        }
-                    } label: {
-                        IconoirCatalog.icon(for: icon)
-                            .frame(width: 18, height: 18)
-                            .foregroundStyle(
-                                iconName == icon
-                                    ? ImprintColors.ctaText(isDark)
-                                    : ImprintColors.secondaryText(isDark)
-                            )
-                            .frame(width: 40, height: 40)
-                            .background(
-                                iconName == icon
-                                    ? ImprintColors.ctaFill(isDark)
-                                    : ImprintColors.inputBg(isDark)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .strokeBorder(
-                                        iconName == icon ? Color.clear : ImprintColors.inputBorder(isDark),
-                                        lineWidth: 1
-                                    )
-                            )
-                    }
-                    .buttonStyle(.plain)
+            // Delete button (editing only)
+            if isEditing, let category = existingCategory, category.canDelete {
+                Button {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Text("Delete Category")
+                        .font(ImprintFonts.technical14Medium)
+                        .foregroundStyle(ImprintColors.redBold)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: ImprintSpacing.size800)
+                        .background(
+                            RoundedRectangle(cornerRadius: ImprintSpacing.radius100)
+                                .strokeBorder(ImprintColors.redSubtler.opacity(0.3), lineWidth: ImprintSpacing.borderDefault)
+                        )
                 }
+                .buttonStyle(.plain)
             }
         }
-    }
-
-    // MARK: - Preview
-
-    private var categoryPreview: some View {
-        HStack(spacing: 8) {
-            Text("Preview:")
-                .font(ImprintFonts.formLabel)
-                .foregroundStyle(ImprintColors.secondaryText(isDark))
-
-            HStack(spacing: 6) {
-                IconoirCatalog.icon(for: iconName)
-                    .frame(width: 12, height: 12)
-                Text(name.isEmpty ? "Category" : name)
-                    .font(ImprintFonts.jetBrainsMedium(14))
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(ColorDerivation.boldColor(from: colorHex))
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 4))
-
-            // Legend square preview
-            RoundedRectangle(cornerRadius: 2)
-                .fill(ColorDerivation.subtleColor(from: colorHex))
-                .frame(width: 10, height: 10)
-        }
-    }
-
-    // MARK: - Field Row
-
-    private func fieldRow(index: Int, field: EditableField) -> some View {
-        HStack(spacing: 12) {
-            // Field type icon
-            Image(systemName: field.fieldType.iconName)
-                .font(.system(size: 14))
-                .foregroundStyle(ImprintColors.secondaryText(isDark))
-                .frame(width: 20)
-
-            // Label
-            TextField("Field name", text: Binding(
-                get: { fields[index].label },
-                set: { fields[index].label = $0 }
-            ))
-            .font(ImprintFonts.jetBrainsMedium(14))
-            .foregroundStyle(ImprintColors.modalText(isDark))
-
-            // Type picker
-            Menu {
-                ForEach(FieldType.allCases) { type in
-                    Button {
-                        fields[index].fieldType = type
-                    } label: {
-                        Label(type.label, systemImage: type.iconName)
-                    }
-                }
-            } label: {
-                Text(field.fieldType.label)
-                    .font(ImprintFonts.jetBrainsRegular(12))
-                    .foregroundStyle(ImprintColors.secondaryText(isDark))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(ImprintColors.inputBg(isDark))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-            }
-
-            // Remove
-            Button {
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    _ = fields.remove(at: index)
-                }
-            } label: {
-                Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 16))
-                    .foregroundStyle(.red.opacity(0.7))
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(ImprintColors.inputBg(isDark))
-        .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 
     // MARK: - Add Field Button
 
     private var addFieldButton: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.15)) {
-                fields.append(EditableField(label: "", fieldType: .text, isRequired: false))
-            }
+            showingFieldTypePicker = true
         } label: {
-            HStack(spacing: 8) {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .bold))
-                Text("Add Field")
-                    .font(ImprintFonts.jetBrainsMedium(14))
-            }
-            .foregroundStyle(ImprintColors.accentBlue)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(
-                RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(ImprintColors.accentBlue.opacity(0.3), lineWidth: 1)
-            )
+            Text("Add field")
+                .font(ImprintFonts.technical14Medium)
+                .foregroundStyle(ImprintColors.textBoldest)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, ImprintSpacing.space300)
+                .background(ImprintColors.cyanSubtlest)
+                .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                .overlay(
+                    RoundedRectangle(cornerRadius: ImprintSpacing.radius100)
+                        .strokeBorder(ImprintColors.cyanSubtler, lineWidth: ImprintSpacing.borderDefault)
+                )
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: - User Field Row
+
+    private func userFieldRow(index: Int, field: EditableField) -> some View {
+        ImprintField(
+            fieldName: field.label.isEmpty ? field.fieldType.label : field.label,
+            icon: IconoirCatalog.icon(for: field.fieldType.iconoirName),
+            state: field.isRequired ? .required : .optional
+        )
+        .contextMenu {
+            Button {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    fields[index].isRequired.toggle()
+                }
+            } label: {
+                Label(
+                    field.isRequired ? "Make Optional" : "Make Required",
+                    systemImage: field.isRequired ? "checkmark.circle" : "exclamationmark.circle"
+                )
+            }
+
+            Button(role: .destructive) {
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    _ = fields.remove(at: index)
+                }
+            } label: {
+                Label("Remove Field", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: - Bottom Bar
+
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                colors: [ImprintColors.neutralSubtlest.opacity(0), ImprintColors.neutralSubtlest],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 60)
+
+            VStack {
+                Button {
+                    saveCategory()
+                    dismiss()
+                } label: {
+                    Text(isEditing ? "Save" : "Create Category")
+                        .font(ImprintFonts.technical14Medium)
+                        .foregroundStyle(ImprintColors.textInverse)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: ImprintSpacing.size800)
+                        .background(
+                            canSave
+                                ? ImprintColors.neutralBoldest
+                                : ImprintColors.neutralBoldest.opacity(0.3)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                }
+                .disabled(!canSave)
+                .padding(.horizontal, ImprintSpacing.space600)
+            }
+            .padding(.bottom, ImprintSpacing.space700)
+            .frame(maxWidth: .infinity)
+            .background(ImprintColors.neutralSubtlest)
+        }
+        .ignoresSafeArea(edges: .bottom)
+    }
+
+    // MARK: - Icon Picker Sheet
+
+    private var iconPickerSheet: some View {
+        NavigationStack {
+            VStack(spacing: ImprintSpacing.space300) {
+                // Search field
+                HStack(spacing: ImprintSpacing.space100) {
+                    Image(systemName: "magnifyingglass")
+                        .font(.system(size: ImprintSpacing.size200))
+                        .foregroundStyle(ImprintColors.iconSubtle)
+                    TextField("Search icons", text: $iconSearchText)
+                        .font(ImprintFonts.technical14Medium)
+                        .foregroundStyle(ImprintColors.textBoldest)
+                }
+                .padding(.horizontal, ImprintSpacing.space300)
+                .padding(.vertical, ImprintSpacing.space100)
+                .background(ImprintColors.inputSubtlest)
+                .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                .overlay(
+                    RoundedRectangle(cornerRadius: ImprintSpacing.radius100)
+                        .strokeBorder(ImprintColors.inputSubtle, lineWidth: 1)
+                )
+
+                // Icon grid
+                ScrollView {
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: ImprintSpacing.space100), count: 7),
+                        spacing: ImprintSpacing.space100
+                    ) {
+                        ForEach(filteredIconNames, id: \.self) { icon in
+                            Button {
+                                withAnimation(.easeInOut(duration: 0.15)) {
+                                    iconName = icon
+                                }
+                                showingIconPicker = false
+                            } label: {
+                                IconoirCatalog.icon(for: icon)
+                                    .frame(width: ImprintSpacing.size300, height: ImprintSpacing.size300)
+                                    .foregroundStyle(
+                                        iconName == icon
+                                            ? ImprintColors.textInverse
+                                            : ImprintColors.iconSubtle
+                                    )
+                                    .frame(width: ImprintSpacing.size700, height: ImprintSpacing.size700)
+                                    .background(
+                                        iconName == icon
+                                            ? ImprintColors.neutralBoldest
+                                            : ImprintColors.neutralSubtler
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .scrollIndicators(.hidden)
+            }
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space300)
+            .background(ImprintColors.neutralSubtlest.ignoresSafeArea())
+            .navigationTitle("Choose Icon")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { showingIconPicker = false }
+                        .font(ImprintFonts.technical14Medium)
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Field Type Picker Sheet
+
+    private var fieldTypePickerSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: ImprintSpacing.space100) {
+                    ForEach(FieldType.allCases) { type in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                fields.append(EditableField(
+                                    label: "",
+                                    fieldType: type,
+                                    isRequired: false
+                                ))
+                            }
+                            showingFieldTypePicker = false
+                        } label: {
+                            ImprintField(
+                                fieldName: type.label,
+                                icon: IconoirCatalog.icon(for: type.iconoirName),
+                                state: .optional
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, ImprintSpacing.space600)
+                .padding(.top, ImprintSpacing.space300)
+            }
+            .scrollIndicators(.hidden)
+            .background(ImprintColors.neutralSubtlest.ignoresSafeArea())
+            .navigationTitle("Add Field")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Cancel") { showingFieldTypePicker = false }
+                        .font(ImprintFonts.technical14Medium)
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 
     // MARK: - Save
@@ -372,7 +477,6 @@ struct CategoryEditorView: View {
         if let existing = existingCategory {
             category = existing
         } else {
-            // Determine sort order (append at end)
             let descriptor = FetchDescriptor<Category>(sortBy: [SortDescriptor(\.sortOrder, order: .reverse)])
             let maxOrder = (try? modelContext.fetch(descriptor).first?.sortOrder) ?? -1
             category = Category(
@@ -389,7 +493,6 @@ struct CategoryEditorView: View {
 
         // Reconcile field definitions
         if isEditing {
-            // Simple approach: remove all and recreate
             for fd in category.fieldDefinitions {
                 modelContext.delete(fd)
             }
@@ -423,7 +526,6 @@ struct CategoryEditorView: View {
         name = category.name
         iconName = category.iconName
         colorHex = category.colorHex
-        selectedColor = ColorDerivation.color(from: category.colorHex)
 
         fields = category.sortedFieldDefinitions.map { fd in
             EditableField(

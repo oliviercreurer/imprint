@@ -19,19 +19,21 @@ final class FieldValue {
 
     // MARK: - Value Columns (one populated per row)
 
-    /// Populated when `fieldType == .text`.
+    /// Populated for text-based types: .shortText, .longText, .url, .country.
     var textValue: String?
 
-    /// Populated when `fieldType == .number`.
+    /// Populated for numeric types: .number, .slider.
     var numberValue: Double?
 
     /// Populated when `fieldType == .date`.
     var dateValue: Date?
 
-    /// Populated when `fieldType == .image`.
+    /// Populated when `fieldType == .image` or `.attachment`.
     /// Stores a relative file path from the app's documents directory.
-    /// Convention: images/<recordId>/<fieldDefinitionId>.jpg
     var imagePath: String?
+
+    /// Populated when `fieldType == .checkbox`.
+    var boolValue: Bool?
 
     // MARK: - Init
 
@@ -45,10 +47,16 @@ final class FieldValue {
     var hasValue: Bool {
         guard let fieldDefinition else { return false }
         switch fieldDefinition.fieldType {
-        case .text: return textValue != nil && !textValue!.isEmpty
-        case .number: return numberValue != nil
-        case .date: return dateValue != nil
-        case .image: return imagePath != nil && !imagePath!.isEmpty
+        case .shortText, .longText, .url, .country:
+            return textValue != nil && !textValue!.isEmpty
+        case .number, .slider:
+            return numberValue != nil
+        case .date:
+            return dateValue != nil
+        case .image, .attachment:
+            return imagePath != nil && !imagePath!.isEmpty
+        case .checkbox:
+            return boolValue != nil
         }
     }
 
@@ -56,19 +64,24 @@ final class FieldValue {
     var displayValue: String? {
         guard let fieldDefinition else { return nil }
         switch fieldDefinition.fieldType {
-        case .text:
+        case .shortText, .longText, .url, .country:
             return textValue
         case .number:
             guard let num = numberValue else { return nil }
-            // Show integers without decimal places
             return num.truncatingRemainder(dividingBy: 1) == 0
                 ? String(Int(num))
                 : String(num)
+        case .slider:
+            guard let num = numberValue else { return nil }
+            return String(Int(num))
         case .date:
             guard let date = dateValue else { return nil }
             return date.formatted(date: .abbreviated, time: .omitted)
-        case .image:
+        case .image, .attachment:
             return imagePath != nil ? "[Image]" : nil
+        case .checkbox:
+            guard let val = boolValue else { return nil }
+            return val ? "Yes" : "No"
         }
     }
 }

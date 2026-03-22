@@ -23,6 +23,7 @@ struct CategoriesView: View {
                 // Subtitle
                 Text("Create your own custom categories and then compose a unique form for each one.")
                     .font(ImprintFonts.body16Regular)
+                    .lineSpacing(ImprintFonts.body16LineSpacing)
                     .foregroundStyle(ImprintColors.textSubtle)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .staggeredAppearance(index: 0)

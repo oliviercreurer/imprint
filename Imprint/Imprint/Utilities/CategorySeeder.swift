@@ -42,7 +42,7 @@ enum CategorySeeder {
                     sortOrder: 0
                 ),
                 [
-                    FieldDefinition(label: "Director", fieldType: .text, sortOrder: 0),
+                    FieldDefinition(label: "Director", fieldType: .shortText, sortOrder: 0),
                     FieldDefinition(label: "Release Year", fieldType: .number, sortOrder: 1),
                     FieldDefinition(label: "Runtime", fieldType: .number, sortOrder: 2),
                 ]
@@ -56,7 +56,7 @@ enum CategorySeeder {
                     sortOrder: 1
                 ),
                 [
-                    FieldDefinition(label: "Creator", fieldType: .text, sortOrder: 0),
+                    FieldDefinition(label: "Creator", fieldType: .shortText, sortOrder: 0),
                     FieldDefinition(label: "Season", fieldType: .number, sortOrder: 1),
                     FieldDefinition(label: "Episode", fieldType: .number, sortOrder: 2),
                 ]
@@ -70,7 +70,7 @@ enum CategorySeeder {
                     sortOrder: 2
                 ),
                 [
-                    FieldDefinition(label: "Author", fieldType: .text, sortOrder: 0),
+                    FieldDefinition(label: "Author", fieldType: .shortText, sortOrder: 0),
                     FieldDefinition(label: "Publication Year", fieldType: .number, sortOrder: 1),
                     FieldDefinition(label: "Page Count", fieldType: .number, sortOrder: 2),
                 ]
@@ -84,7 +84,7 @@ enum CategorySeeder {
                     sortOrder: 3
                 ),
                 [
-                    FieldDefinition(label: "Artist", fieldType: .text, sortOrder: 0),
+                    FieldDefinition(label: "Artist", fieldType: .shortText, sortOrder: 0),
                     FieldDefinition(label: "Release Year", fieldType: .number, sortOrder: 1),
                 ]
             ),
