@@ -215,17 +215,22 @@ struct ContentView: View {
         .sheet(isPresented: $showingCreateCategory) {
             CategoryEditorView()
         }
-        .fullScreenCover(item: $selectedRecord, onDismiss: {
+        .sheet(item: $selectedCategory) { category in
+            CategoryEditorView(existingCategory: category)
+        }
+        .sheet(item: $selectedRecord, onDismiss: {
             if let name = pendingToastName {
                 pendingToastName = nil
                 showToast(name)
             }
         }) { record in
-            let records = currentTabRecords
-            let idx = records.firstIndex(where: { $0.id == record.id }) ?? 0
-            RecordDetailPager(records: records, initialIndex: idx) { name in
-                pendingToastName = name
-            }
+            EntryDetailView(
+                record: record,
+                onMovedToLog: { name in
+                    pendingToastName = name
+                    selectedRecord = nil
+                }
+            )
         }
         .onAppear {
             CategorySeeder.seedIfNeeded(context: modelContext)

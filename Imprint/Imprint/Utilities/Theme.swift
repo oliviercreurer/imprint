@@ -64,6 +64,8 @@ enum ImprintColors {
     static let textSubtlest = Color.adaptive(light: 0xCECDC3, dark: 0x343331)
     /// Inverse text (on filled buttons). Light: base-00 #FFFCF0, Dark: base-1000 #100F0F
     static let textInverse  = Color.adaptive(light: 0xFFFCF0, dark: 0x100F0F)
+    /// Link text. Light: cyan-bold #24837B, Dark: cyan-subtle #5ABDAC
+    static let textLink     = Color.adaptive(light: 0x24837B, dark: 0x5ABDAC)
 
     // ── Icon ────────────────────────────────────────────────────────
 
@@ -333,9 +335,11 @@ enum ImprintFonts {
     // Body (Outfit):
     //   Body/16pt/Regular    → Outfit Regular 16pt, lineHeight 24pt
     //   Body/16pt/Medium     → Outfit Medium 16pt, lineHeight 24pt
+    //   Body/16pt/SemiBold   → Outfit SemiBold 16pt, lineHeight 24pt
     //   Body/16pt/Bold       → Outfit Bold 16pt, lineHeight 24pt
     //   Body/14pt/Regular    → Outfit Regular 14pt, lineHeight 18pt
     //   Body/14pt/Medium     → Outfit Medium 14pt, lineHeight 18pt
+    //   Body/14pt/SemiBold   → Outfit SemiBold 14pt, lineHeight 18pt
     //   Body/14pt/Bold       → Outfit Bold 14pt, lineHeight 18pt
 
     // Heading
@@ -353,6 +357,7 @@ enum ImprintFonts {
     // 16pt group: lineHeight = height/600 (24pt)
     static var body16Regular: Font     { outfitRegular(size500) }
     static var body16Medium: Font      { outfitMedium(size500) }
+    static var body16SemiBold: Font     { outfitSemiBold(size500) }
     static var body16Bold: Font        { outfitBold(size500) }
     /// Line spacing for body/16pt styles. Apply via `.lineSpacing()` modifier.
     /// Figma lineHeight 24pt − font size 16pt = 8pt total extra leading.
@@ -362,6 +367,7 @@ enum ImprintFonts {
     // 14pt group: lineHeight = height/300 (18pt)
     static var body14Regular: Font     { outfitRegular(size400) }
     static var body14Medium: Font      { outfitMedium(size400) }
+    static var body14SemiBold: Font    { outfitSemiBold(size400) }
     static var body14Bold: Font        { outfitBold(size400) }
     /// Line spacing for body/14pt styles (Figma lineHeight 18pt − font size 14pt = 4pt).
     static let body14LineSpacing: CGFloat = 2

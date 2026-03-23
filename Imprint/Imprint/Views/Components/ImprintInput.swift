@@ -17,6 +17,10 @@ struct ImprintInput: View {
     var placeholder: String = ""
     var showIcon: Bool = false
 
+    /// When provided, a keyboard dismiss icon is shown inside the field.
+    /// The parent is responsible for clearing focus in this closure.
+    var onKeyboardDismiss: (() -> Void)? = nil
+
     // MARK: - Body
 
     var body: some View {
@@ -30,7 +34,7 @@ struct ImprintInput: View {
             }
 
             // Input field
-            HStack(spacing: ImprintSpacing.space600) {
+            HStack(spacing: ImprintSpacing.space100) {
                 TextField(placeholder, text: $text)
                     .font(ImprintFonts.jetBrainsMedium(ImprintFonts.size400))
                     .foregroundStyle(ImprintColors.textBoldest)
@@ -42,6 +46,15 @@ struct ImprintInput: View {
                         .scaledToFit()
                         .frame(width: ImprintSpacing.size300, height: ImprintSpacing.size300)
                         .foregroundStyle(ImprintColors.iconSubtle)
+                }
+
+                if let onKeyboardDismiss {
+                    Button(action: onKeyboardDismiss) {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundStyle(ImprintColors.iconSubtle)
+                    }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, ImprintSpacing.space300)

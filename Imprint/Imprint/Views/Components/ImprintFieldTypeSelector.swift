@@ -29,8 +29,11 @@ struct ImprintFieldTypeSelector<Icon: View>: View {
                     .font(ImprintFonts.technical12Bold)
                     .foregroundStyle(isSelected ? ImprintColors.textInverse : ImprintColors.textBoldest)
                     .lineLimit(1)
+
+                Spacer()
             }
             .padding(ImprintSpacing.space300)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(isSelected ? ImprintColors.neutralBoldest : ImprintColors.neutralSubtler)
             .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
         }

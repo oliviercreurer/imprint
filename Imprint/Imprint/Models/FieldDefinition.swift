@@ -24,6 +24,22 @@ final class FieldDefinition {
     /// Whether this field must be filled when creating a record.
     var isRequired: Bool
 
+    /// Soft-deleted fields are hidden from new record forms but their
+    /// historical `FieldValue`s are preserved and still displayed on
+    /// existing records.
+    var isArchived: Bool = false
+
+    // MARK: - Slider Configuration
+
+    /// Minimum value for slider fields. Defaults to 1.
+    var sliderMin: Double?
+
+    /// Maximum value for slider fields. Defaults to 5.
+    var sliderMax: Double?
+
+    /// Step increment for slider fields. Defaults to 1.
+    var sliderStep: Double?
+
     // MARK: - Relationships
 
     /// The category this field belongs to.
@@ -44,6 +60,12 @@ final class FieldDefinition {
 
     // MARK: - Init
 
+    /// Whether any records have stored a value for this field.
+    @Transient
+    var hasData: Bool {
+        fieldValues.contains { $0.hasValue }
+    }
+
     init(
         label: String,
         fieldType: FieldType,
@@ -54,6 +76,7 @@ final class FieldDefinition {
         self.fieldTypeRaw = fieldType.rawValue
         self.sortOrder = sortOrder
         self.isRequired = isRequired
+        self.isArchived = false
         self.fieldValues = []
     }
 }

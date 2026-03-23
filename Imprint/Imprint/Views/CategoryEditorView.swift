@@ -33,7 +33,13 @@ struct CategoryEditorView: View {
     @State private var fields: [EditableField] = []
     @State private var showingIconPicker = false
     @State private var showingDeleteConfirmation = false
-    @State private var showingFieldTypePicker = false
+    @State private var showingAddField = false
+    @State private var editingFieldID: FieldEditID?
+
+    /// Identifiable wrapper for triggering the edit-field sheet.
+    private struct FieldEditID: Identifiable {
+        let id: UUID
+    }
 
     private var isEditing: Bool { existingCategory != nil }
     private var canSave: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
@@ -44,6 +50,15 @@ struct CategoryEditorView: View {
         var label: String
         var fieldType: FieldType
         var isRequired: Bool
+        // Slider configuration
+        var sliderMin: Double = 1
+        var sliderMax: Double = 5
+        var sliderStep: Double = 1
+        /// Links back to the SwiftData FieldDefinition when editing an existing category.
+        var definitionID: PersistentIdentifier?
+        /// True if this field has stored values across any records. Used to
+        /// prevent destructive changes like switching the field type.
+        var hasExistingData: Bool = false
     }
 
     // MARK: - Icon Picker State
@@ -61,30 +76,27 @@ struct CategoryEditorView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: ImprintSpacing.space400) {
-                    // ── 1. Header ──────────────────────────────────
-                    headerSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: ImprintSpacing.space400) {
+                // ── 1. Header ──────────────────────────────────
+                headerSection
 
-                    // ── 2. Name + Icon row ────────────────────────
-                    nameAndIconRow
+                // ── 2. Name + Icon row ────────────────────────
+                nameAndIconRow
 
-                    // ── 3. Divider ────────────────────────────────
-                    Rectangle()
-                        .fill(ImprintColors.neutralSubtle)
-                        .frame(height: 1)
+                // ── 3. Divider ────────────────────────────────
+                Rectangle()
+                    .fill(ImprintColors.neutralSubtle)
+                    .frame(height: 1)
 
-                    // ── 4. Form Fields section ────────────────────
-                    formFieldsSection
-                }
-                .padding(.horizontal, ImprintSpacing.space600)
-                .padding(.top, ImprintSpacing.space900)
-                .padding(.bottom, 200)
+                // ── 4. Form Fields section ────────────────────
+                formFieldsSection
             }
-            .scrollIndicators(.hidden)
-
-            // ── Bottom fade + save button ─────────────────────
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space900)
+        }
+        .scrollIndicators(.hidden)
+        .safeAreaInset(edge: .bottom) {
             bottomBar
         }
         .background(ImprintColors.neutralSubtlest.ignoresSafeArea())
@@ -93,8 +105,24 @@ struct CategoryEditorView: View {
         .sheet(isPresented: $showingIconPicker) {
             iconPickerSheet
         }
-        .sheet(isPresented: $showingFieldTypePicker) {
-            fieldTypePickerSheet
+        .sheet(isPresented: $showingAddField) {
+            AddFieldView(categoryName: name) { newField in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    fields.append(newField)
+                }
+            }
+        }
+        .sheet(item: $editingFieldID) { editID in
+            if let index = fields.firstIndex(where: { $0.id == editID.id }) {
+                AddFieldView(
+                    categoryName: name,
+                    existingField: fields[index]
+                ) { updatedField in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        fields[index] = updatedField
+                    }
+                }
+            }
         }
         .alert("Delete Category", isPresented: $showingDeleteConfirmation) {
             Button("Delete", role: .destructive) {
@@ -270,7 +298,7 @@ struct CategoryEditorView: View {
 
     private var addFieldButton: some View {
         Button {
-            showingFieldTypePicker = true
+            showingAddField = true
         } label: {
             Text("Add field")
                 .font(ImprintFonts.technical14Medium)
@@ -290,12 +318,23 @@ struct CategoryEditorView: View {
     // MARK: - User Field Row
 
     private func userFieldRow(index: Int, field: EditableField) -> some View {
-        ImprintField(
-            fieldName: field.label.isEmpty ? field.fieldType.label : field.label,
-            icon: IconoirCatalog.icon(for: field.fieldType.iconoirName),
-            state: field.isRequired ? .required : .optional
-        )
+        Button {
+            editingFieldID = FieldEditID(id: field.id)
+        } label: {
+            ImprintField(
+                fieldName: field.label.isEmpty ? field.fieldType.label : field.label,
+                icon: IconoirCatalog.icon(for: field.fieldType.iconoirName),
+                state: field.isRequired ? .required : .optional
+            )
+        }
+        .buttonStyle(.plain)
         .contextMenu {
+            Button {
+                editingFieldID = FieldEditID(id: field.id)
+            } label: {
+                Label("Edit Field", systemImage: "pencil")
+            }
+
             Button {
                 withAnimation(.easeInOut(duration: 0.15)) {
                     fields[index].isRequired.toggle()
@@ -320,39 +359,29 @@ struct CategoryEditorView: View {
     // MARK: - Bottom Bar
 
     private var bottomBar: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [ImprintColors.neutralSubtlest.opacity(0), ImprintColors.neutralSubtlest],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 60)
-
-            VStack {
-                Button {
-                    saveCategory()
-                    dismiss()
-                } label: {
-                    Text(isEditing ? "Save" : "Create Category")
-                        .font(ImprintFonts.technical14Medium)
-                        .foregroundStyle(ImprintColors.textInverse)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: ImprintSpacing.size800)
-                        .background(
-                            canSave
-                                ? ImprintColors.neutralBoldest
-                                : ImprintColors.neutralBoldest.opacity(0.3)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
-                }
-                .disabled(!canSave)
-                .padding(.horizontal, ImprintSpacing.space600)
+        VStack {
+            Button {
+                saveCategory()
+                dismiss()
+            } label: {
+                Text(isEditing ? "Save" : "Create Category")
+                    .font(ImprintFonts.technical14Medium)
+                    .foregroundStyle(ImprintColors.textInverse)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: ImprintSpacing.size800)
+                    .background(
+                        canSave
+                            ? ImprintColors.neutralBoldest
+                            : ImprintColors.neutralBoldest.opacity(0.3)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
             }
-            .padding(.bottom, ImprintSpacing.space700)
-            .frame(maxWidth: .infinity)
-            .background(ImprintColors.neutralSubtlest)
+            .disabled(!canSave)
         }
-        .ignoresSafeArea(edges: .bottom)
+        .padding(.horizontal, ImprintSpacing.space600)
+        .padding(.top, ImprintSpacing.space500)
+        .padding(.bottom, ImprintSpacing.space200)
+        .background(ImprintColors.neutralSubtlest)
     }
 
     // MARK: - Icon Picker Sheet
@@ -427,49 +456,6 @@ struct CategoryEditorView: View {
         .presentationDetents([.medium, .large])
     }
 
-    // MARK: - Field Type Picker Sheet
-
-    private var fieldTypePickerSheet: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: ImprintSpacing.space100) {
-                    ForEach(FieldType.allCases) { type in
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.15)) {
-                                fields.append(EditableField(
-                                    label: "",
-                                    fieldType: type,
-                                    isRequired: false
-                                ))
-                            }
-                            showingFieldTypePicker = false
-                        } label: {
-                            ImprintField(
-                                fieldName: type.label,
-                                icon: IconoirCatalog.icon(for: type.iconoirName),
-                                state: .optional
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding(.horizontal, ImprintSpacing.space600)
-                .padding(.top, ImprintSpacing.space300)
-            }
-            .scrollIndicators(.hidden)
-            .background(ImprintColors.neutralSubtlest.ignoresSafeArea())
-            .navigationTitle("Add Field")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Cancel") { showingFieldTypePicker = false }
-                        .font(ImprintFonts.technical14Medium)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-
     // MARK: - Save
 
     private func saveCategory() {
@@ -491,31 +477,59 @@ struct CategoryEditorView: View {
         category.iconName = iconName
         category.colorHex = colorHex
 
-        // Reconcile field definitions
-        if isEditing {
-            for fd in category.fieldDefinitions {
-                modelContext.delete(fd)
-            }
-            category.fieldDefinitions = []
-        }
-
-        // Create field definitions from the editable list
-        for (index, editField) in fields.enumerated() {
-            guard !editField.label.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
-            let fd = FieldDefinition(
-                label: editField.label.trimmingCharacters(in: .whitespaces),
-                fieldType: editField.fieldType,
-                sortOrder: index,
-                isRequired: editField.isRequired
-            )
-            fd.category = category
-            modelContext.insert(fd)
-            category.fieldDefinitions.append(fd)
-        }
-
+        // Insert new category into the context first, so FDs can reference it
         if existingCategory == nil {
             modelContext.insert(category)
         }
+
+        // Reconcile field definitions
+        // 1. Collect IDs of fields still present in the editor
+        let activeDefinitionIDs = Set(fields.compactMap(\.definitionID))
+
+        // 2. Archive any existing definitions that were removed from the editor
+        if isEditing {
+            for fd in category.fieldDefinitions where !fd.isArchived {
+                if !activeDefinitionIDs.contains(fd.persistentModelID) {
+                    fd.isArchived = true
+                }
+            }
+        }
+
+        // 3. Update existing or create new field definitions
+        for (index, editField) in fields.enumerated() {
+            guard !editField.label.trimmingCharacters(in: .whitespaces).isEmpty else { continue }
+
+            if let defID = editField.definitionID,
+               let existing = category.fieldDefinitions.first(where: { $0.persistentModelID == defID }) {
+                // Update in place — preserves all FieldValue relationships
+                existing.label = editField.label.trimmingCharacters(in: .whitespaces)
+                existing.fieldType = editField.fieldType
+                existing.sortOrder = index
+                existing.isRequired = editField.isRequired
+                existing.sliderMin = editField.fieldType == .slider ? editField.sliderMin : nil
+                existing.sliderMax = editField.fieldType == .slider ? editField.sliderMax : nil
+                existing.sliderStep = editField.fieldType == .slider ? editField.sliderStep : nil
+            } else {
+                // Brand new field
+                let fd = FieldDefinition(
+                    label: editField.label.trimmingCharacters(in: .whitespaces),
+                    fieldType: editField.fieldType,
+                    sortOrder: index,
+                    isRequired: editField.isRequired
+                )
+                if editField.fieldType == .slider {
+                    fd.sliderMin = editField.sliderMin
+                    fd.sliderMax = editField.sliderMax
+                    fd.sliderStep = editField.sliderStep
+                }
+                fd.category = category
+                modelContext.insert(fd)
+                category.fieldDefinitions.append(fd)
+            }
+        }
+
+        // Explicit save — ensures data is persisted before the sheet dismisses
+        try? modelContext.save()
     }
 
     // MARK: - Populate for Editing
@@ -527,11 +541,16 @@ struct CategoryEditorView: View {
         iconName = category.iconName
         colorHex = category.colorHex
 
-        fields = category.sortedFieldDefinitions.map { fd in
+        fields = category.activeFieldDefinitions.map { fd in
             EditableField(
                 label: fd.label,
                 fieldType: fd.fieldType,
-                isRequired: fd.isRequired
+                isRequired: fd.isRequired,
+                sliderMin: fd.sliderMin ?? 1,
+                sliderMax: fd.sliderMax ?? 5,
+                sliderStep: fd.sliderStep ?? 1,
+                definitionID: fd.persistentModelID,
+                hasExistingData: fd.hasData
             )
         }
     }

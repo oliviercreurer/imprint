@@ -70,6 +70,14 @@ extension Category {
         fieldDefinitions.sorted { $0.sortOrder < $1.sortOrder }
     }
 
+    /// Active (non-archived) field definitions, sorted by display order.
+    /// Use this for new record forms; archived fields are excluded.
+    var activeFieldDefinitions: [FieldDefinition] {
+        fieldDefinitions
+            .filter { !$0.isArchived }
+            .sorted { $0.sortOrder < $1.sortOrder }
+    }
+
     /// Whether this category can be deleted.
     /// Deletion is blocked while the category still has records.
     var canDelete: Bool {

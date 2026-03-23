@@ -1,18 +1,25 @@
 import SwiftUI
 import SwiftData
 
-/// A universal modal form for creating or editing a record in any category.
-///
-/// Dynamically renders fields from the selected category's `FieldDefinition`s.
-///
-/// Layout: pinned title bar → scrollable form → bottom fade + save button.
-/// Fields: Name (required) → Date (for logged) → dynamic fields → Note.
+// MARK: - Record Form View
+// Figma: entry-edit (node 119:3382)
+// A modal form for creating or editing a record.
+//
+// Layout (top → bottom):
+//   1. Header: "New Log Entry" / "New Queue Entry" / "Edit Entry" (H5) + close button
+//   2. Divider
+//   3. Tabs + Category badge row:
+//      - Left: ImprintSegmentedControl (.hug) for Log/Queue (hidden when editing)
+//      - Right: ImprintCategoryBadge (cyan for log, yellow for queue)
+//   4. Form fields: Name, Date (log only), dynamic fields, Note
+//   5. Footer: gradient fade + Save button (right-aligned)
+//
+// Category is locked to whatever was selected before opening the form.
+
 struct RecordFormView: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("appearanceMode") private var appearanceMode = "light"
-    private var isDark: Bool { appearanceMode == "dark" }
 
     /// All enabled categories, sorted by display order.
     @Query(filter: #Predicate<Category> { $0.isEnabled }, sort: \Category.sortOrder)
@@ -40,15 +47,29 @@ struct RecordFormView: View {
     @State private var hasSetDate = false
 
     /// Dynamic field values keyed by FieldDefinition's persistentModelID.
-    /// Text and number fields store strings; date fields store Date; image fields store Data.
     @State private var textValues: [PersistentIdentifier: String] = [:]
     @State private var dateValues: [PersistentIdentifier: Date] = [:]
     @State private var imageDataValues: [PersistentIdentifier: Data] = [:]
     @State private var boolValues: [PersistentIdentifier: Bool] = [:]
 
+    // MARK: - Keyboard Tracking
+
+    @StateObject private var keyboard = KeyboardObserver()
+
+    /// Identifies the currently active scroll anchor for programmatic scrolling.
+    @State private var activeAnchor: String?
+
     private var isEditing: Bool { existingRecord != nil && !isRelogging }
     private var canSave: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty && selectedCategory != nil
+    }
+
+    /// Maps the RecordType to an integer index for the segmented control.
+    private var recordTypeIndex: Binding<Int> {
+        Binding(
+            get: { recordType == .queued ? 1 : 0 },
+            set: { recordType = $0 == 1 ? .queued : .logged }
+        )
     }
 
     // MARK: - Init
@@ -66,186 +87,147 @@ struct RecordFormView: View {
         _recordType = State(initialValue: existingRecord?.recordType ?? initialRecordType)
     }
 
+    // MARK: - Body
+
     var body: some View {
-        VStack(spacing: 0) {
-            // Pinned title bar
+        ZStack(alignment: .bottom) {
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: ImprintSpacing.space500) {
+                        // ── Header ────────────────────────────────────
+                        headerSection
+
+                        // ── Tabs + Category badge ─────────────────────
+                        tabsAndBadgeRow
+
+                        // ── Form fields ───────────────────────────────
+                        formFieldsSection
+                    }
+                    .padding(.horizontal, ImprintSpacing.space600)
+                    .padding(.top, ImprintSpacing.space800)
+                    .padding(.bottom, max(140, keyboard.height + 80))
+                    .animation(.easeOut(duration: 0.25), value: keyboard.height)
+                }
+                .scrollIndicators(.hidden)
+                .onChange(of: activeAnchor) { _, anchor in
+                    guard let anchor else { return }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo(anchor, anchor: .center)
+                        }
+                    }
+                }
+            }
+
+            // ── Footer ────────────────────────────────────
+            footerBar
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .background(ImprintColors.neutralSubtlest.ignoresSafeArea())
+        .onAppear(perform: populateInitialState)
+        .presentationCornerRadius(ImprintSpacing.radius500)
+    }
+
+    // MARK: - Header
+
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: ImprintSpacing.space200) {
             HStack {
-                Text(isEditing ? "Edit Entry" : (recordType == .logged ? "New Log Entry" : "New Queue Entry"))
-                    .font(ImprintFonts.modalTitle)
-                    .foregroundStyle(ImprintColors.headingText(isDark))
+                Text(headerTitle)
+                    .font(ImprintFonts.headingH5)
+                    .foregroundStyle(ImprintColors.textBoldest)
 
                 Spacer()
 
-                Button {
-                    dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(ImprintColors.headingText(isDark))
-                        .frame(width: 32, height: 32)
-                }
+                ImprintCloseButton(action: { dismiss() })
             }
-            .padding(.horizontal, 32)
-            .padding(.top, 48)
-            .padding(.bottom, 16)
-            .background(ImprintColors.modalBg(isDark))
 
-            // Scrollable form content
-            ZStack(alignment: .bottom) {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 16) {
-                        // Category chips
-                        categoryChips
-
-                        // Log / Queue toggle (hidden when editing)
-                        if !isEditing {
-                            recordTypeToggle
-                        }
-
-                        // Date (for logged records)
-                        if recordType == .logged {
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack {
-                                    Text("Date")
-                                        .font(ImprintFonts.formLabel)
-                                        .foregroundStyle(ImprintColors.headingText(isDark))
-                                    Spacer()
-                                    Text("Required")
-                                        .font(ImprintFonts.formLabel)
-                                        .foregroundStyle(ImprintColors.required)
-                                }
-                                ImprintDatePicker(selection: $finishedOn, hasSetDate: $hasSetDate)
-                            }
-                        }
-
-                        // Name
-                        FormField(label: "Name", isRequired: true, isDark: isDark) {
-                            TextField("", text: $name)
-                                .font(ImprintFonts.formValue)
-                                .foregroundStyle(ImprintColors.modalText(isDark))
-                        }
-
-                        // Dynamic fields from category
-                        if let category = selectedCategory {
-                            ForEach(category.sortedFieldDefinitions) { definition in
-                                dynamicField(for: definition)
-                            }
-                        }
-
-                        // Note
-                        FormField(label: "Note", isDark: isDark) {
-                            TextEditor(text: $note)
-                                .font(ImprintFonts.noteBody)
-                                .foregroundStyle(ImprintColors.modalText(isDark))
-                                .frame(minHeight: 120)
-                                .scrollContentBackground(.hidden)
-                        }
-                    }
-                    .padding(.horizontal, 32)
-                    .padding(.top, 16)
-                    .padding(.bottom, 200)
-                }
-
-                // Bottom fade + save button
-                VStack(spacing: 0) {
-                    LinearGradient(
-                        colors: [ImprintColors.modalBg(isDark).opacity(0), ImprintColors.modalBg(isDark)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(height: 60)
-
-                    VStack {
-                        Button {
-                            saveRecord()
-                            dismiss()
-                        } label: {
-                            Text(isEditing ? "Save" : "Add Entry")
-                                .font(ImprintFonts.jetBrainsMedium(16))
-                                .foregroundStyle(ImprintColors.ctaText(isDark))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(canSave ? ImprintColors.ctaFill(isDark) : ImprintColors.ctaFill(isDark).opacity(0.3))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                        .disabled(!canSave)
-                        .padding(.horizontal, 32)
-                    }
-                    .padding(.bottom, 40)
-                    .frame(maxWidth: .infinity)
-                    .background(ImprintColors.modalBg(isDark))
-                }
-                .ignoresSafeArea(edges: .bottom)
-            }
+            // Divider
+            Rectangle()
+                .fill(ImprintColors.neutralSubtle)
+                .frame(height: 1)
         }
-        .background(ImprintColors.modalBg(isDark).ignoresSafeArea())
-        .onAppear(perform: populateInitialState)
-        .presentationCornerRadius(42)
-        .keyboardDoneBar()
     }
 
-    // MARK: - Category Chips
+    private var headerTitle: String {
+        if isEditing {
+            return "Edit Entry"
+        }
+        return recordType == .logged ? "New Log Entry" : "New Queue Entry"
+    }
 
-    private var categoryChips: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(enabledCategories) { category in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            selectedCategory = category
-                        }
-                    } label: {
-                        HStack(spacing: 6) {
-                            IconoirCatalog.icon(for: category.iconName)
-                                .frame(width: 12, height: 12)
-                            Text(category.name)
-                                .font(ImprintFonts.jetBrainsMedium(14))
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(
-                            selectedCategory?.persistentModelID == category.persistentModelID
-                                ? ColorDerivation.boldColor(from: category.colorHex)
-                                : ImprintColors.chipInactiveFill(isDark)
-                        )
-                        .foregroundStyle(
-                            selectedCategory?.persistentModelID == category.persistentModelID
-                                ? .white
-                                : ImprintColors.chipInactiveText(isDark)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                    }
-                    .buttonStyle(.plain)
-                }
+    // MARK: - Tabs + Category Badge Row
+
+    private var tabsAndBadgeRow: some View {
+        HStack {
+            if !isEditing {
+                ImprintSegmentedControl(
+                    selectedIndex: recordTypeIndex,
+                    labels: ["Log", "Queue"],
+                    sizing: .hug
+                )
+            }
+
+            Spacer()
+
+            if let category = selectedCategory {
+                ImprintCategoryBadge(
+                    categoryName: category.name,
+                    categoryIcon: Group {
+                        IconoirCatalog.icon(for: category.iconName)
+                    },
+                    recordType: recordType
+                )
             }
         }
     }
 
-    // MARK: - Record Type Toggle
+    // MARK: - Form Fields
 
-    private var recordTypeToggle: some View {
-        HStack(spacing: 0) {
-            ForEach([RecordType.logged, RecordType.queued], id: \.self) { type in
-                Button {
-                    withAnimation(.easeInOut(duration: 0.15)) {
-                        recordType = type
-                    }
-                } label: {
-                    Text(type == .logged ? "Log" : "Queue")
-                        .font(ImprintFonts.jetBrainsMedium(14))
-                        .foregroundStyle(recordType == type ? ImprintColors.ctaText(isDark) : ImprintColors.headingText(isDark))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 40)
-                        .background(recordType == type ? ImprintColors.ctaFill(isDark) : ImprintColors.inputBg(isDark))
+    private var formFieldsSection: some View {
+        VStack(alignment: .leading, spacing: ImprintSpacing.space200) {
+            // Name (always first, always required)
+            ImprintInput(
+                label: "Name",
+                text: $name,
+                placeholder: "Entry name",
+                onKeyboardDismiss: keyboard.height > 0 ? { dismissKeyboard() } : nil
+            )
+            .id("field-name")
+            .simultaneousGesture(TapGesture().onEnded { activeAnchor = "field-name" })
+
+            // Date (only for logged records)
+            if recordType == .logged {
+                VStack(alignment: .leading, spacing: ImprintSpacing.space50) {
+                    Text("Date")
+                        .font(ImprintFonts.technical12Bold)
+                        .foregroundStyle(ImprintColors.textSubtle)
+
+                    ImprintDatePicker(selection: $finishedOn, hasSetDate: $hasSetDate)
                 }
-                .buttonStyle(.plain)
             }
+
+            // Dynamic fields from category
+            if let category = selectedCategory {
+                ForEach(category.activeFieldDefinitions) { definition in
+                    dynamicField(for: definition)
+                        .id("field-\(definition.persistentModelID.hashValue)")
+                        .simultaneousGesture(TapGesture().onEnded {
+                            activeAnchor = "field-\(definition.persistentModelID.hashValue)"
+                        })
+                }
+            }
+
+            // Note (always last)
+            ImprintTextArea(
+                label: "Note",
+                text: $note,
+                placeholder: "Add a note...",
+                onKeyboardDismiss: keyboard.height > 0 ? { dismissKeyboard() } : nil
+            )
+            .id("field-note")
+            .simultaneousGesture(TapGesture().onEnded { activeAnchor = "field-note" })
         }
-        .clipShape(RoundedRectangle(cornerRadius: 8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8)
-                .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
-        )
     }
 
     // MARK: - Dynamic Field Rendering
@@ -253,59 +235,49 @@ struct RecordFormView: View {
     @ViewBuilder
     private func dynamicField(for definition: FieldDefinition) -> some View {
         let id = definition.persistentModelID
+        let dismiss: (() -> Void)? = keyboard.height > 0 ? { dismissKeyboard() } : nil
 
         switch definition.fieldType {
         case .shortText, .url, .country:
-            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
-                TextField("", text: textBinding(for: id))
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .keyboardType(definition.fieldType == .url ? .URL : .default)
-            }
+            ImprintInput(
+                label: definition.label,
+                text: textBinding(for: id),
+                onKeyboardDismiss: dismiss
+            )
 
         case .longText:
-            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
-                TextField("", text: textBinding(for: id), axis: .vertical)
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .lineLimit(3...6)
-            }
+            ImprintTextArea(
+                label: definition.label,
+                text: textBinding(for: id),
+                minHeight: 80,
+                onKeyboardDismiss: dismiss
+            )
 
-        case .number:
-            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
-                TextField("", text: textBinding(for: id))
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .keyboardType(.decimalPad)
-            }
-
-        case .slider:
-            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
-                TextField("", text: textBinding(for: id))
-                    .font(ImprintFonts.formValue)
-                    .foregroundStyle(ImprintColors.modalText(isDark))
-                    .keyboardType(.numberPad)
-            }
+        case .number, .slider:
+            ImprintInput(
+                label: definition.label,
+                text: textBinding(for: id),
+                onKeyboardDismiss: dismiss
+            )
 
         case .checkbox:
-            FormField(label: definition.label, isRequired: definition.isRequired, isDark: isDark) {
-                Toggle("", isOn: boolBinding(for: id))
-                    .labelsHidden()
+            HStack {
+                Text(definition.label)
+                    .font(ImprintFonts.technical12Bold)
+                    .foregroundStyle(ImprintColors.textSubtle)
+
+                Spacer()
+
+                ImprintToggle(isOn: boolBinding(for: id))
             }
+            .padding(.vertical, ImprintSpacing.space50)
 
         case .date:
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(definition.label)
-                        .font(ImprintFonts.formLabel)
-                        .foregroundStyle(ImprintColors.headingText(isDark))
-                    if definition.isRequired {
-                        Spacer()
-                        Text("Required")
-                            .font(ImprintFonts.formLabel)
-                            .foregroundStyle(ImprintColors.required)
-                    }
-                }
+            VStack(alignment: .leading, spacing: ImprintSpacing.space50) {
+                Text(definition.label)
+                    .font(ImprintFonts.technical12Bold)
+                    .foregroundStyle(ImprintColors.textSubtle)
+
                 ImprintDatePicker(
                     selection: dateBinding(for: id),
                     hasSetDate: .constant(dateValues[id] != nil)
@@ -313,24 +285,77 @@ struct RecordFormView: View {
             }
 
         case .image, .attachment:
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(definition.label)
-                        .font(ImprintFonts.formLabel)
-                        .foregroundStyle(ImprintColors.headingText(isDark))
-                    if definition.isRequired {
-                        Spacer()
-                        Text("Required")
-                            .font(ImprintFonts.formLabel)
-                            .foregroundStyle(ImprintColors.required)
-                    }
-                }
+            VStack(alignment: .leading, spacing: ImprintSpacing.space50) {
+                Text(definition.label)
+                    .font(ImprintFonts.technical12Bold)
+                    .foregroundStyle(ImprintColors.textSubtle)
+
                 ImageFieldView(
                     imageData: imageBinding(for: id),
-                    isDark: isDark
+                    isDark: false
                 )
             }
         }
+    }
+
+    // MARK: - Footer
+
+    private var footerBar: some View {
+        VStack(spacing: 0) {
+            // Gradient fade
+            LinearGradient(
+                colors: [ImprintColors.neutralSubtlest.opacity(0), ImprintColors.neutralSubtlest],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 40)
+
+            HStack {
+                // Delete button — hidden for new entries, visible when editing
+                if isEditing {
+                    Button {
+                        // Delete handled by parent (EntryDetailView)
+                        dismiss()
+                    } label: {
+                        Text("Delete...")
+                            .font(ImprintFonts.technical14Medium)
+                            .foregroundStyle(ImprintColors.redBold)
+                            .padding(.horizontal, ImprintSpacing.space400)
+                            .frame(height: ImprintSpacing.size800)
+                            .background(ImprintColors.redSubtlest)
+                            .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                Spacer()
+
+                // Save button
+                Button {
+                    saveRecord()
+                    dismiss()
+                } label: {
+                    Text("Save")
+                        .font(ImprintFonts.technical14Medium)
+                        .foregroundStyle(ImprintColors.textInverse)
+                        .padding(.horizontal, ImprintSpacing.space400)
+                        .frame(height: ImprintSpacing.size800)
+                        .background(
+                            canSave
+                                ? ImprintColors.blueBold
+                                : ImprintColors.blueBold.opacity(ImprintColors.stateDisabled)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: ImprintSpacing.radius100))
+                }
+                .buttonStyle(.plain)
+                .disabled(!canSave)
+            }
+            .padding(.horizontal, ImprintSpacing.space600)
+            .padding(.top, ImprintSpacing.space200)
+            .padding(.bottom, ImprintSpacing.space700)
+            .background(ImprintColors.neutralSubtlest)
+        }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
     }
 
     // MARK: - Value Bindings
@@ -360,6 +385,16 @@ struct RecordFormView: View {
         Binding(
             get: { imageDataValues[id] },
             set: { imageDataValues[id] = $0 }
+        )
+    }
+
+    // MARK: - Keyboard
+
+    private func dismissKeyboard() {
+        activeAnchor = nil
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
         )
     }
 
@@ -400,7 +435,7 @@ struct RecordFormView: View {
         }
 
         // Create field values from the form state
-        for definition in category.sortedFieldDefinitions {
+        for definition in category.activeFieldDefinitions {
             let fieldValue = FieldValue(fieldDefinition: definition)
             fieldValue.record = record
 
@@ -520,43 +555,7 @@ struct RecordFormView: View {
     }
 }
 
-// MARK: - Form Field Component
-
-/// A labeled form field matching the Figma design.
-struct FormField<Content: View>: View {
-    let label: String
-    var isRequired: Bool = false
-    var isDark: Bool = false
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(label)
-                    .font(ImprintFonts.formLabel)
-                    .foregroundStyle(ImprintColors.headingText(isDark))
-
-                if isRequired {
-                    Spacer()
-                    Text("Required")
-                        .font(ImprintFonts.formLabel)
-                        .foregroundStyle(ImprintColors.required)
-                }
-            }
-
-            content
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .frame(minHeight: 48)
-                .background(ImprintColors.inputBg(isDark))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .strokeBorder(ImprintColors.inputBorder(isDark), lineWidth: 2)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-    }
-}
+// MARK: - Preview
 
 #Preview {
     RecordFormView()
