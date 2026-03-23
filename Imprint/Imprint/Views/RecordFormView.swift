@@ -212,9 +212,6 @@ struct RecordFormView: View {
                 ForEach(category.activeFieldDefinitions) { definition in
                     dynamicField(for: definition)
                         .id("field-\(definition.persistentModelID.hashValue)")
-                        .simultaneousGesture(TapGesture().onEnded {
-                            activeAnchor = "field-\(definition.persistentModelID.hashValue)"
-                        })
                 }
             }
 
@@ -253,11 +250,20 @@ struct RecordFormView: View {
                 onKeyboardDismiss: dismiss
             )
 
-        case .number, .slider:
+        case .number:
             ImprintInput(
                 label: definition.label,
                 text: textBinding(for: id),
                 onKeyboardDismiss: dismiss
+            )
+
+        case .slider:
+            ImprintSliderInput(
+                label: definition.label,
+                value: sliderBinding(for: id, definition: definition),
+                min: definition.sliderMin ?? 1,
+                max: definition.sliderMax ?? 5,
+                step: definition.sliderStep ?? 1
             )
 
         case .checkbox:
@@ -388,6 +394,24 @@ struct RecordFormView: View {
         )
     }
 
+    /// Bridges between the text-based storage and the Double binding
+    /// that ImprintSliderInput expects. Falls back to the field's min value.
+    private func sliderBinding(for id: PersistentIdentifier, definition: FieldDefinition) -> Binding<Double> {
+        Binding(
+            get: {
+                if let text = textValues[id], let num = Double(text) {
+                    return num
+                }
+                return definition.sliderMin ?? 1
+            },
+            set: { newValue in
+                textValues[id] = newValue.truncatingRemainder(dividingBy: 1) == 0
+                    ? String(Int(newValue))
+                    : String(newValue)
+            }
+        )
+    }
+
     // MARK: - Keyboard
 
     private func dismissKeyboard() {
@@ -473,6 +497,9 @@ struct RecordFormView: View {
         if existingRecord == nil || isRelogging {
             modelContext.insert(record)
         }
+
+        // Commit changes before dismiss so the parent view sees them immediately
+        try? modelContext.save()
     }
 
     // MARK: - Image Persistence
